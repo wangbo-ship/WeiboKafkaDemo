@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.cug.geodt.weibo.sos.mapper.MonitorEquipmentMonitorEquipmentSensorMapper">
+    <insert id="insertMonitorEquipmentMonitorEquipmentSensor" parameterType="org.cug.geodt.weibo.sos.pojo.sensor.info.MonitorEquipmentMonitorEquipmentSensor">
+        insert into monitor_equipment_monitor_equipment_sensor_ground_stay(sensor_id,monitor_equipment_full_name,monitor_camera_type,obs_theme,intend_application,equipment_manufacturer,
+                                                                           image_sensor_type,resolution,effective_pixel,clarity,signal_to_noise_ratio,horizontal_fov,vertical_fov,video_frame_rate)
+        values (#{sensorId},#{monitorEquipmentFullName},#{monitorCameraType},#{obsTheme},#{intendApplication},
+                                                                                     #{equipmentManufacturer},#{imageSensorType},#{resolution},#{effectivePixel},#{clarity},#{signalToNoiseRatio},
+                                                                                     #{horizontalFov},#{verticalFov},#{videoFrameRate})
+    </insert>
+    <delete id="deleteSensorById">
+        delete
+        from monitor_equipment_monitor_equipment_sensor_ground_stay
+        where sensor_id = #{sensorId}
+    </delete>
+    <select id="getSensorInfoById"
+            resultType="org.cug.geodt.weibo.sos.pojo.sensor.info.MonitorEquipmentMonitorEquipmentSensor">
+        select *
+        from monitor_equipment_monitor_equipment_sensor_ground_stay
+        where sensor_id = #{sensorId}
+    </select>
+</mapper>

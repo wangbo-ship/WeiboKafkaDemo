@@ -1,0 +1,3 @@
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+  org.cug.geodt.weibo.sos.config.Swagger2Configuration
+

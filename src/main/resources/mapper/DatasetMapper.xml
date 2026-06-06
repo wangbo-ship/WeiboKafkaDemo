@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.cug.geodt.weibo.sos.mapper.DatasetMapper">
+
+    <insert id="insertDataset" parameterType="org.cug.geodt.weibo.sos.pojo.sensor.sos.Datasets">
+        insert into dataset(dataset_id,dataset_type,observation_type,fk_procedure_id,
+                            fk_offering_id,fk_feature_id,fk_platform_id,fk_sensor_id)
+        values (#{datasetId},#{datasetType},#{observationType},#{fkProcedureId},
+                 #{fkOfferingId},#{fkFeatureId},#{fkPlatformId},#{fkSensorId})
+    </insert>
+</mapper>

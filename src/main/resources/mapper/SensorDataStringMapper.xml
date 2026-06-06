@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.cug.geodt.weibo.sos.mapper.SensorDataStringMapper">
+
+    <select id="selectMaxObsTimeStamp" resultType="java.lang.Long">
+        SELECT Max(obs_timestamp) FROM sensor_data_string where sensor_id = #{sensorId} and fk_dataset_id is null
+    </select>
+    <select id="selectMinObsTimeStamp" resultType="java.lang.Long">
+        SELECT Min(obs_timestamp) FROM sensor_data_string where sensor_id = #{sensorId} and fk_dataset_id is null
+    </select>
+</mapper>

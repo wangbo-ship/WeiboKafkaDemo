@@ -1,0 +1,21 @@
+# 编译class
+target/
+build/
+out/
+*.class
+# IDE配置
+.idea/
+*.iml
+.vscode/
+*.project
+.c9/
+# 日志
+*.log
+# 本地配置、环境文件
+application-dev.yml
+.env
+# 打包产物
+*.jar
+*.war
+# 系统缓存
+.DS_Store

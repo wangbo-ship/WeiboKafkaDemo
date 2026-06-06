@@ -1,0 +1,129 @@
+server:
+  servlet:
+    context-path: /
+  port: 54323
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/geodt_db?useUnicode=true&characterEncoding=utf-8&useSSL=false
+    username: postgres
+    password: 1223655418
+#    url: jdbc:postgresql://localhost:54321/weibo?useUnicode=true&characterEncoding=utf-8&useSSL=false
+##    username: cug
+#    username: postgres
+#    password: weibo123!@
+    type: com.alibaba.druid.pool.DruidDataSource
+    driverClassName: org.postgresql.Driver
+  kafka:
+    bootstrap-servers: localhost:9092
+#    bootstrap-servers: localhost:54322
+#    bootstrap-servers: 192.168.10.11:5432
+    #生产者的配置，大部分我们可以使用默认的，这里列出几个比较重要的属性
+    producer:
+      #每批次发送消息的数量
+      batch-size: 16
+      #设置大于0的值将使客户端重新发送任何数据，一旦这些数据发送失败。注意，这些重试与客户端接收到发送错误时的重试没有什么不同。允许重试将潜在的改变数据的顺序，如果这两个消息记录都是发送到同一个partition，则第一个消息失败第二个发送成功，则第二条消息会比第一条消息出现要早。
+      retries: 0
+      #producer可以用来缓存数据的内存大小。如果数据产生速度大于向broker发送的速度，producer会阻塞或者抛出异常，以“block.on.buffer.full”来表明。这项设置将和producer能够使用的总内存相关，但并不是一个硬性的限制，因为不是producer使用的所有内存都是用于缓存。一些额外的内存会用于压缩（如果引入压缩机制），同样还有一些用于维护请求。
+      buffer-memory: 33554432
+      #key序列化方式
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+    #消费者的配置
+    consumer:
+      #Kafka中没有初始偏移或如果当前偏移在服务器上不再存在时,默认区最新 ，有三个选项 【latest, earliest, none】
+      auto-offset-reset: latest
+      #是否开启自动提交
+      enable-auto-commit: true
+      #自动提交的时间间隔
+      auto-commit-interval: 100
+      #key的解码方式
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      #value的解码方式
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+
+geomesa:
+  instanceId: weibo
+  zookeepers: localhost:2181
+  user: root
+  password: 123456
+  catalog: weibo_geomesa
+
+# 自动输出Geomesa的查询计划
+logging:
+  level:
+    org.locationtech.geomesa.index.utils.Explainer: TRACE
+
+weibo:
+  geomesa:
+    schema:
+      with-coordinates: weibo-with-coordinates
+      without-coordinates: weibo-without-coordinates
+
+fieldName:
+  info:
+    sensor-type: weather_radar:weather_radar_sensor,uav:scanning_sensor,uav:radar_sensor,uav:fix_sensor,uav:camera_sensor,satellite:nonimage_sensor,satellite:imagetype_scanning_sensor,satellite:imagetype_radar_sensor,satellite:imagetype_photographic_sensor,monitor_equipment:monitor_equipment_sensor,groundstation:fix_sensor
+    # sensor-fields 对应于InsertSensorInfo的插入字段判断。
+    sensor-fields:
+      identifierList: Create User Id,Platform Id,Sensor Long Name,Sensor Short Name,Manufacturer Name,Sensor Type
+      characteristicList: Sensor Length,Sensor Height,Sensor Width,Sensor Weight,Arcrole,Data Format,Obs Theme
+      capabilityList: Obs Radius
+      contactList:
+      eventList: Installation,Deployment
+      parameterList: Sample Duration,Sample Interval
+      position: Position Lat,Position Lon,Position Alt
+      weather_radar_weather_radar_sensor: Polarization Description,Max Sensing Distance,Time Resolution
+      uav_scanning_sensor: Scan Resolution,Measure Section,Scan Point Number,Vertical Fov,Horizontal Fov
+      uav_radar_sensor: Min Band Frequency Range,Max Band Frequency Range,Wire Bundles Number,Vertical Fov,Horizontal Fov
+      uav_fix_sensor: Sample Response Time,Detection Accuracy,Sample Cycle
+      uav_camera_sensor: Image Sensor Type,Camera Model,Horizontal Fov,Vertical Fov,Equivalent Focal Distance,Max Pixel
+      satellite_nonimage_sensor: Polarization Description,Max Sensing Distance,Time Resolution
+      satellite_imagetype_scanning_sensor: Scanning Type,Resolution,Image Width,Fov,Side Angle,Nadir Resolution
+      satellite_imagetype_radar_sensor: Polarization Type,Resolution,Image Width,Min Band Frequency Range,Max Band Frequency Range
+      satellite_imagetype_photographic_sensor: Photography Type,Resolution,Image Width,Fov,Focal Length,Forward Overlap
+      monitor_equipment_monitor_equipment_sensor: Resolution,Effective Pixel,Monitor Camera Type,Clarity,Signal To Noise Ratio,Horizontal Fov,Vertical Fov,Video Frame Rate
+      groundStation_fix_sensor: Sample Cycle,Sample Response Time,Detection Accuracy
+
+    sensor-id: sensorId
+    sensor-num: sensorType,number
+    sensor: sensorId,sensorLongName,sensorType,srid,sensorLongitude,sensorLatitude,sensorInstallTime,createUserId,metrics
+    metric: sensorId,metricName
+    group-metric: sensorType,sensorId,metricName
+    metrics: sensorId,obsTimestamp,metricName
+    latlon: sensorId,sensorLongitude,sensorLatitude
+    group: sensorId,sensorLongName,sensorType,srid,sensorLongitude,sensorLatitude,sensorInstallTime,createUserId,metrics
+    obs-time: sensorId,obsTime
+    obs-timestamp: sensorId,obsTimestamp
+  observation:
+    metric-value: sensorId,metricName,metricValue,obsTimestamp
+    max-value: sensorId,metricName,maxValue,startTime,endTime
+    min-value: sensorId,metricName,minValue,startTime,endTime
+    avg-value: sensorId,metricName,avgValue,startTime,endTime
+  offering: http://www.org.cug.geodt/offerings/
+  procedure: http://www.org.cug.geodt/procedure/
+  feature: http://www.org.cug.geodt/feature/
+
+#配置分表参数
+tableSize: 10
+
+#procedure num切分器扫描频率
+scanFrequency: 1000
+
+geoserver:
+  geoserver-url: "http://localhost:8082/geoserver"
+  rest-url: "http://localhost:8082/geoserver/rest"
+  workspace: "weibo-test"
+  datastore: "observation_data_sentiment"
+  username: "admin"
+  password: "geoserver"
+
+openai:
+  agent:
+    base-url: https://openrouter.ai/api/v1
+    api-key: ${OPENROUTER_API_KEY:}
+    model: qwen/qwen-plus
+    max-tool-rounds: 8
+
+agent:
+  interaction:
+    session-ttl-seconds: 7200
+    in-memory-store-enabled: true

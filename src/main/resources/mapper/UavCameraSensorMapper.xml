@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.cug.geodt.weibo.sos.mapper.UavCameraSensorMapper">
+    <insert id="insertUavCameraSensor" parameterType="org.cug.geodt.weibo.sos.pojo.sensor.info.UavCameraSensor">
+        insert into uav_camera_sensor_low_altitude_move(sensor_id,camera_model,image_sensor_type,horizontal_fov,vertical_fov,equivalent_focal_distance,max_pixel)
+        values (#{sensorId},#{cameraModel},#{imageSensorType},#{horizontalFov},#{verticalFov},#{equivalentFocalDistance},#{maxPixel})
+    </insert>
+    <delete id="deleteSensorById">
+        delete
+        from uav_camera_sensor_low_altitude_move
+        where sensor_id = #{sensorId}
+    </delete>
+    <select id="getSensorInfoById" resultType="org.cug.geodt.weibo.sos.pojo.sensor.info.UavCameraSensor">
+        select *
+        from uav_camera_sensor_low_altitude_move
+        where sensor_id = #{sensorId}
+    </select>
+    <select id="selectAllSensorId" resultType="java.lang.String">
+        select sensor_id
+        from uav_camera_sensor_low_altitude_move
+    </select>
+</mapper>

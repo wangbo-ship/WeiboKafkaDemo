@@ -1,0 +1,270 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.cug.geodt.weibo.sos.mapper.ObservationMapper">
+    <resultMap id="StringResultMap" type="org.cug.geodt.weibo.sos.pojo.sensor.data.SensorDataString">
+        <id column="sensor_id" property="sensorId" javaType="String" jdbcType="VARCHAR"/>
+        <result column="obs_timestamp" property="obsTimestamp" />
+        <result column="metric_name" property="metricName" javaType="String" jdbcType="VARCHAR"/>
+        <result column="metric_value" property="metricValue" javaType="String" jdbcType="VARCHAR"/>
+        <result column="srid" property="srid" javaType="String" jdbcType="VARCHAR"/>
+        <result column="longitude" property="longitude" javaType="Float" jdbcType="VARCHAR"/>
+        <result column="latitude" property="latitude" javaType="Float" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <resultMap id="FloatResultMap" type="org.cug.geodt.weibo.sos.pojo.sensor.data.SensorDataFloat">
+        <id column="sensor_id" property="sensorId" javaType="String" jdbcType="VARCHAR"/>
+        <result column="obs_timestamp" property="obsTimestamp" javaType="Integer" jdbcType="VARCHAR"/>
+        <result column="metric_name" property="metricName" javaType="String" jdbcType="VARCHAR"/>
+        <result column="metric_value" property="metricValue" javaType="Float" jdbcType="VARCHAR"/>
+        <result column="srid" property="srid" javaType="String" jdbcType="VARCHAR"/>
+        <result column="longitude" property="longitude" javaType="Float" jdbcType="VARCHAR"/>
+        <result column="latitude" property="latitude" javaType="Float" jdbcType="VARCHAR"/>
+    </resultMap>
+
+
+    <select id="getLatestMetricValueById" resultMap="org.cug.geodt.weibo.sos.mapper.InfoMapper.BaseResultMap">
+        select metrics
+        from sensor_info
+        where sensor_id = #{sensorId}
+    </select>
+
+    <select id="getLatestMetricValueBySensorIdAndMetricName" resultMap="FloatResultMap">
+        select *
+        from sensor_data_float
+        where
+        <if test="sensor_id != null and sensor_id.size() > 0">
+            obs_timestamp between ((select extract(epoch from now())) - #{intervalInMin}*60) and (select extract(epoch
+            from now())) and sensor_id in
+            <foreach collection="sensor_id" index="index" item="sensor_id" open="(" separator="," close=")">
+                #{sensorId}
+            </foreach>
+            and metric_name = #{metricName}
+        </if>
+    </select>
+
+    <select id="getMetricValueBySensorIdAndTimeRang" resultMap="org.cug.geodt.weibo.sos.mapper.InfoMapper.BaseResultMap">
+        select metrics
+        from sensor_info
+        where sensor_id = #{sensorId}
+    </select>
+    <select id="getMetricValueByIdAndTimeRangAndMetricName"
+            resultMap="org.cug.geodt.weibo.sos.mapper.InfoMapper.BaseResultMap">
+        select metrics
+        from sensor_info
+        where sensor_id = #{sensorId}
+        <!--        select *-->
+        <!--        from sensor_data_float-->
+        <!--        where-->
+        <!--        <if test="sensor_id != null and sensor_id.size() > 0">-->
+        <!--            obs_timestamp between  #{start_time} and #{end_time}  and sensor_id in-->
+        <!--            <foreach collection="sensor_id" index="index" item="sensor_id" open="(" separator="," close=")">-->
+        <!--                #{sensor_id}-->
+        <!--            </foreach>-->
+        <!--            and metric_name = #{metric_name}-->
+        <!--        </if>-->
+    </select>
+
+    <select id="getSensorIdInFloat" resultMap="FloatResultMap">
+        select sensor_id
+        from sensor_data_float
+        group by sensor_id
+    </select>
+
+    <select id="getAllMetricNameInFloat" resultMap="FloatResultMap">
+        select metric_name
+        from sensor_data_float
+        group by metric_name
+    </select>
+
+    <select id="getSensorIdInString" resultMap="StringResultMap">
+        select sensor_id
+        from sensor_data_string
+        group by sensor_id
+    </select>
+
+    <select id="getLatestMetricValueByIdInFloat" resultMap="FloatResultMap">
+        select
+            *
+        from sensor_data_float
+        where
+        obs_timestamp between ((select extract(epoch from now())) - #{intervalInMin}*60)
+        and (select extract(epoch from now()))
+        and sensor_id = #{sensorId}
+        <!--        <if test="sensor_id != null and sensor_id.size() > 0">-->
+        <!--            obs_timestamp between ((select extract(epoch from now())) - #{interval_in_min}*60) and  (select extract(epoch from now())) and sensor_id in-->
+        <!--            <foreach collection="sensor_id" index="index" item="sensor_id" open="(" separator="," close=")">-->
+        <!--                #{sensor_id}-->
+        <!--            </foreach>-->
+        <!--        </if>-->
+    </select>
+
+    <select id="getLatestMetricValueByIdInString" resultMap="StringResultMap">
+        select *
+        from sensor_data_string
+        where
+        obs_timestamp between ((select extract(epoch from now())) - #{intervalInMin}*60)
+        and (select extract(epoch from now()))
+        and sensor_id = #{sensorId}
+        <!--        <if test="sensor_id != null and sensor_id.size() > 0">-->
+        <!--            obs_timestamp between ((select extract(epoch from now())) - #{interval_in_min}*60) and  (select extract(epoch from now())) and sensor_id in-->
+        <!--            <foreach collection="sensor_id" index="index" item="sensor_id" open="(" separator="," close=")">-->
+        <!--                #{sensor_id}-->
+        <!--            </foreach>-->
+        <!--        </if>-->
+    </select>
+
+    <select id="getMetricValueByIdAndTimeRangInFloat" resultMap="FloatResultMap">
+        select *
+        from sensor_data_float
+        where
+        obs_timestamp between  #{startTime}
+        and #{endTime}
+        and sensor_id = #{sensorId}
+    </select>
+
+    <select id="getMetricValueByIdAndTimeRangInString" resultMap="StringResultMap">
+        select *
+        from sensor_data_string
+        where
+        obs_timestamp between  #{startTime}
+        and #{endTime}
+        and sensor_id = #{sensorId}
+    </select>
+
+    <select id="getLatestMetricValueByTypeAndMetricName"
+            resultMap="org.cug.geodt.weibo.sos.mapper.InfoMapper.BaseResultMap">
+        select sensor_id
+        from sensor_info
+        where sensor_type = #{sensorType}
+    </select>
+
+    <select id="getMetricValueByTypeAndTimeRang" resultMap="org.cug.geodt.weibo.sos.mapper.InfoMapper.BaseResultMap">
+        select sensor_id
+        from sensor_info
+        where sensor_type = #{sensorType}
+    </select>
+
+    <select id="getMetricValueByTypeAndTimeRangAndMetricName"
+            resultMap="org.cug.geodt.weibo.sos.mapper.InfoMapper.BaseResultMap">
+        select sensor_id
+        from sensor_info
+        where sensor_type = #{sensorType}
+    </select>
+
+    <select id="getDataEntryByMonth" resultType="org.cug.geodt.weibo.sos.vo.EntryByMonth">
+        SELECT COALESCE
+                   ( C.MONTH, d.MONTH ) AS MONTH,
+	COALESCE ( C.record_count, 0 ) + COALESCE ( d.record_count, 0 ) AS record
+        FROM
+            (
+            SELECT
+            TO_CHAR( TIMESTAMP 'epoch' + obs_timestamp * INTERVAL '1 second', 'YYYY-MM' ) AS MONTH,
+            COUNT ( * ) AS record_count
+            FROM
+            sensor_data_float
+            GROUP BY
+            MONTH
+            ORDER BY
+            MONTH DESC
+            )
+            C FULL JOIN (
+            SELECT
+            TO_CHAR( TIMESTAMP 'epoch' + obs_timestamp * INTERVAL '1 second', 'YYYY-MM' ) AS MONTH,
+            COUNT ( * ) AS record_count
+            FROM
+            sensor_data_string
+            GROUP BY
+            MONTH
+            ORDER BY
+            MONTH DESC
+            ) d ON C."month" = d."month"
+            LIMIT #{num}
+    </select>
+    <select id="getDataEntryByYear" resultType="org.cug.geodt.weibo.sos.vo.EntryByYear">
+        SELECT COALESCE
+                   (c.YEAR, d.YEAR ) AS YEAR,
+	COALESCE ( C.record_count, 0 ) + COALESCE ( d.record_count, 0 ) AS record
+        FROM
+            (
+            SELECT
+            TO_CHAR( TIMESTAMP 'epoch' + obs_timestamp * INTERVAL '1 second', 'YYYY' ) AS YEAR,
+            COUNT ( * ) AS record_count
+            FROM
+            sensor_data_float
+            GROUP BY
+            YEAR
+            ORDER BY
+            YEAR DESC
+            )
+            c FULL JOIN (
+            SELECT
+            TO_CHAR( TIMESTAMP 'epoch' + obs_timestamp * INTERVAL '1 second', 'YYYY' ) AS YEAR,
+            COUNT ( * ) AS record_count
+            FROM
+            sensor_data_string
+            GROUP BY
+            YEAR
+            ORDER BY
+            YEAR DESC
+            ) d ON c."year" = d."year"
+            LIMIT #{num}
+    </select>
+    <select id="getDataEntryByDay" resultType="org.cug.geodt.weibo.sos.vo.EntryByDay">
+        SELECT COALESCE
+                   (c.day, d.day ) AS day,
+	COALESCE ( C.record_count, 0 ) + COALESCE ( d.record_count, 0 ) AS record
+        FROM
+            (
+            SELECT
+            DATE(TO_TIMESTAMP(obs_timestamp)) AS day,
+            COUNT ( * ) AS record_count
+            FROM
+            sensor_data_float
+            GROUP BY
+            day
+            ORDER BY
+            day DESC
+            )
+            c FULL JOIN (
+            SELECT
+            DATE(TO_TIMESTAMP(obs_timestamp))  AS day,
+            COUNT ( * ) AS record_count
+            FROM
+            sensor_data_string
+            GROUP BY
+            day
+            ORDER BY
+            day DESC
+            ) d ON c."day" = d."day"
+            LIMIT #{num}
+    </select>
+    <select id="getTodayVolume" resultType="java.lang.Long">
+        select sum(bytes_size) from sensor_derive_a_quarter where start_time between #{startTime} and #{endTime} -15*60
+    </select>
+    <select id="getTotalDataEntries" resultType="java.lang.Integer">
+        SELECT SUM(total_count) AS total_sum
+        FROM (
+                 SELECT COUNT(*) AS total_count FROM sensor_data_float
+                 UNION ALL
+                 SELECT COUNT(*) AS total_count FROM sensor_data_string
+             ) AS subquery;
+    </select>
+    <select id="getTotalVolume" resultType="java.lang.Long">
+        select sum(bytes_size) from sensor_derive_a_quarter
+    </select>
+    <select id="getAllDataEntry" resultType="java.lang.Long">
+
+    </select>
+    <select id="getTodayEntry" resultType="java.lang.Long">
+        SELECT SUM(total_count) AS total_sum
+        FROM (
+                 SELECT COUNT(*) AS total_count FROM sensor_data_float where obs_timestamp between #{startTime} and #{endTime}
+                 UNION ALL
+                 SELECT COUNT(*) AS total_count FROM sensor_data_string where obs_timestamp between #{startTime} and #{endTime}
+             ) AS subquery;
+    </select>
+
+
+</mapper>

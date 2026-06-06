@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.cug.geodt.weibo.sos.mapper.SatelliteImagePhotographicSensorMapper">
+    <insert id="insertSatelliteImagePhotographicSensor" parameterType="org.cug.geodt.weibo.sos.pojo.sensor.info.SatelliteImagePhotographicSensor">
+        insert into satellite_image_type_photographic_sensor_medium_altitude_move(sensor_id,photography_type,
+                                                                                  resolution,image_width,fov,focal_length,forward_overlap)
+        values (#{sensorId},#{photographyType},#{resolution},#{imageWidth},#{fov},
+                #{focalLength},#{forwardOverlap})
+    </insert>
+    <delete id="deleteSensorById">
+        delete
+        from satellite_image_type_photographic_sensor_medium_altitude_move
+        where sensor_id = #{sensorId}
+    </delete>
+    <select id="getSensorInfoById"
+            resultType="org.cug.geodt.weibo.sos.pojo.sensor.info.SatelliteImagePhotographicSensor">
+        select *
+        from satellite_image_type_photographic_sensor_medium_altitude_move
+        where sensor_id = #{sensorId}
+    </select>
+    <select id="selectAllSensorId" resultType="java.lang.String">
+        select sensor_id
+        from satellite_image_type_photographic_sensor_medium_altitude_move
+    </select>
+</mapper>

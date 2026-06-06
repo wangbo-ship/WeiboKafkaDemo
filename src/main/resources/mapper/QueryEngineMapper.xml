@@ -1,0 +1,431 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.cug.geodt.weibo.sos.engine.mapper.QueryEngineMapper">
+
+    <resultMap id="sensorInfo" type="org.cug.geodt.weibo.sos.pojo.sensor.info.SensorInfo">
+        <id column="sensor_id" property="sensorId"/>
+        <result column="sensor_long_name" property="sensorLongName"/>
+        <result column="sensor_type" property="sensorType"/>
+        <result column="srid" property="srid"/>
+        <result column="sensor_longitude" property="sensorLongitude"/>
+        <result column="sensor_latitude" property="sensorLatitude"/>
+        <result column="sensor_install_time" property="sensorInstallTime"/>
+        <result column="create_user_id" property="createUserId"/>
+        <result column="metrics"  property="metrics" />
+    </resultMap>
+    <!--String类型观测数据-->
+    <resultMap id="sensorDataString" type="org.cug.geodt.weibo.sos.pojo.sensor.data.SensorDataString">
+        <id column="sensor_id" property="sensorId"/>
+        <result column="obs_timestamp" property="obsTimestamp"/>
+        <result column="metric_name" property="metricName"/>
+        <result column="metric_value" property="metricValue"/>
+        <result column="srid" property="srid"/>
+        <result column="longitude" property="longitude"/>
+        <result column="latitude" property="latitude"/>
+    </resultMap>
+    <!--float类型观测数据-->
+    <resultMap id="sensorDataFloat" type="org.cug.geodt.weibo.sos.pojo.sensor.data.SensorDataFloat">
+        <id column="sensor_id" property="sensorId"/>
+        <result column="obs_timestamp" property="obsTimestamp" />
+        <result column="metric_name" property="metricName"/>
+        <result column="metric_value" property="metricValue"/>
+        <result column="srid" property="srid"/>
+        <result column="longitude" property="longitude"/>
+        <result column="latitude" property="latitude"/>
+    </resultMap>
+
+    <!--观测数据据聚合表-->
+    <resultMap id="SensorDerive" type="org.cug.geodt.weibo.sos.pojo.SensorDerive">
+        <id column="sensor_id" property="sensorId"/>
+        <result column="max_value" property="maxValue"/>
+        <result column="min_value" property="minValue"/>
+        <result column="avg_value" property="avgValue"/>
+        <result column="start_time" property="startTime"/>
+        <result column="end_time" property="endTime"/>
+        <result column="value_number" property="valueNumber"/>
+        <result column="metric_name" property="metricName"/>
+    </resultMap>
+
+
+
+
+    <select id="getSensorInfoByIds" resultMap="sensorInfo">
+        select
+            *
+        from
+            sensor_info
+        <if test="sensorId != null and sensorId.size() > 0">
+            where
+            sensor_id in
+            <foreach collection="sensorId" index="index" item="sensorId" open="(" separator="," close=")">
+                #{sensorId}
+            </foreach>
+        </if>
+    </select>
+
+    <select id="getSensorDataStringByIds" parameterType="java.lang.Object" resultMap="sensorDataString">
+        select
+            sensor_id,
+            obs_timestamp,
+            metric_name,
+            metric_value,
+            srid,
+            longitude,
+            latitude
+        from
+            sensor_data_string
+        <if test="sensorId != null and sensorId.size() > 0">
+            where
+            sensor_id in
+            <foreach collection="sensorId" index="index" item="sensorId" open="(" separator="," close=")">
+                #{sensorId}
+            </foreach>
+        </if>
+    </select>
+
+    <select id="getSensorDataFloatByIds" parameterType="java.lang.Object" resultMap="sensorDataFloat">
+        select
+            sensor_id,
+            obs_timestamp,
+            metric_name,
+            metric_value,
+            srid,
+            longitude,
+            latitude
+        from
+            sensor_data_float
+        <if test="sensorId != null and sensorId.size() > 0">
+            where
+            sensor_id in
+            <foreach collection="sensorId" index="index" item="sensorId" open="(" separator="," close=")">
+                #{sensorId}
+            </foreach>
+        </if>
+    </select>
+    <select id="getSensorIdInSensorInfo" parameterType="java.lang.Object" resultMap="sensorInfo">
+        select distinct sensor_id
+        from sensor_info
+    </select>
+
+
+    <select id="getSensorDeriveBySensorIdAndQuarter" resultMap="SensorDerive">
+        select *
+        from sensor_derive_a_quarter
+        where
+        <if test="sensorId != null and sensorId.size() > 0">
+            sensor_id in
+            <foreach collection="sensorId" index="index" item="sensorId" open="(" separator="," close=")">
+                #{sensorId}
+            </foreach>
+            and
+        </if>
+         start_time = #{startTime}
+        and end_time = #{endTime}
+
+    </select>
+
+    <select id="getSensorDeriveBySensorIdAndHour" resultMap="SensorDerive">
+        select *
+        from sensor_derive_one_hour
+        where
+        <if test="sensorId != null and sensorId.size() > 0">
+
+            sensor_id in
+            <foreach collection="sensorId" index="index" item="sensorId" open="(" separator="," close=")">
+                #{sensorId}
+            </foreach>
+            and
+        </if>
+         start_time = #{startTime}
+        and end_time = #{endTime}
+    </select>
+
+    <select id="getSensorDeriveBySensorIdAndDay" resultMap="SensorDerive">
+        select *
+        from sensor_derive_one_day
+        where
+        <if test="sensorId != null and sensorId.size() > 0">
+            sensor_id in
+            <foreach collection="sensorId" index="index" item="sensorId" open="(" separator="," close=")">
+                #{sensorId}
+            </foreach>
+            and
+        </if>
+        start_time = #{startTime}
+        and end_time = #{endTime}
+    </select>
+
+    <select id="getSensorDeriveBySensorIdAndWeek" resultMap="SensorDerive">
+        select *
+        from sensor_derive_one_week
+        where
+        <if test="sensorId != null and sensorId.size() > 0">
+            sensor_id in
+            <foreach collection="sensorId" index="index" item="sensorId" open="(" separator="," close=")">
+                #{sensorId}
+            </foreach>
+            and
+        </if>
+        start_time = #{startTime}
+        and end_time = #{endTime}
+    </select>
+
+    <select id="getSensorDeriveBySensorIdAndMonth" resultMap="SensorDerive">
+        select *
+        from sensor_derive_one_month
+        where
+        <if test="sensorId != null and sensorId.size() > 0">
+            sensor_id in
+            <foreach collection="sensorId" index="index" item="sensorId" open="(" separator="," close=")">
+                #{sensorId}
+            </foreach>
+            and
+        </if>
+         start_time = #{startTime}
+        and end_time = #{endTime}
+    </select>
+
+
+    <select id="getSensorDeriveBySensorIdAndYear" resultMap="SensorDerive">
+        select *
+        from sensor_derive_one_year
+        <if test="sensorId != null and sensorId.size() > 0">
+            where
+            sensor_id in
+            <foreach collection="sensorId" index="index" item="sensorId" open="(" separator="," close=")">
+                #{sensorId}
+            </foreach>
+            and
+        </if>
+        and start_time = #{startTime}
+        and end_time = #{endTime}
+    </select>
+
+    <select id="getSensorInfoBySensorType" resultMap="sensorInfo">
+        select *
+        from sensor_info
+        where sensor_type = #{sensorType}
+    </select>
+
+    <select id="getSensorDataFloatByConditions"
+            resultType="org.cug.geodt.weibo.sos.pojo.sensor.data.SensorDataFloat">
+        select
+            sensor_id,
+            obs_timestamp,
+            metric_name,
+            metric_value,
+            srid,
+            longitude,
+            latitude
+        from
+            sensor_data_float
+        where
+            sensor_id in
+            <foreach collection="sensorId" index="index" item="sensorId" open="(" separator="," close=")">
+                #{sensorId}
+            </foreach>
+        <if test="startTime!=null">
+            and obs_timestamp >= #{startTime}
+        </if>
+        <if test="endTime!=null">
+            and obs_timestamp 	<![CDATA[ <= ]]> #{endTime}
+        </if>
+        <if test="metricName!=null">
+            and metric_name 	= #{metricName}
+        </if>
+    </select>
+    <select id="getSensorDataStringByConditions"
+            resultType="org.cug.geodt.weibo.sos.pojo.sensor.data.SensorDataString">
+        select
+            sensor_id,
+            obs_timestamp,
+            metric_name,
+            metric_value,
+            srid,
+            longitude,
+            latitude
+        from
+            sensor_data_string
+        where
+            sensor_id in
+            <foreach collection="sensorId" index="index" item="sensorId" open="(" separator="," close=")">
+                #{sensorId}
+            </foreach>
+        <if test="startTime!=null">
+            and obs_timestamp >= #{startTime}
+        </if>
+        <if test="endTime!=null">
+            and obs_timestamp 	<![CDATA[ <= ]]> #{endTime}
+        </if>
+        <if test="metricName!=null">
+            and metric_name 	= #{metricName}
+        </if>
+    </select>
+    <select id="getSensorDeriveByConditionsAndQuarter" resultType="org.cug.geodt.weibo.sos.pojo.SensorDerive">
+        select
+            sensor_id,
+            metric_name,
+            max_value,
+            min_value,
+            avg_value,
+            value_number,
+            start_time,
+            end_time
+        from
+            sensor_derive_a_quarter
+        where
+        <if test="sensorId != null and sensorId.size() > 0">
+            sensor_id in
+            <foreach collection="sensorId" index="index" item="sensorId" open="(" separator="," close=")">
+                #{sensorId}
+            </foreach>
+            and
+        </if>
+        <if test="metricName != null">
+            metric_name = #{metricName}
+        and
+        </if>
+        start_time = #{startTime}
+        and end_time = #{endTime}
+    </select>
+    <select id="getSensorDeriveByConditionsAndHour" resultType="org.cug.geodt.weibo.sos.pojo.SensorDerive">
+        select
+            sensor_id,
+            metric_name,
+            max_value,
+            min_value,
+            avg_value,
+            value_number,
+            start_time,
+            end_time
+        from
+            sensor_derive_one_hour
+        where
+        <if test="sensorId != null and sensorId.size() > 0">
+            sensor_id in
+            <foreach collection="sensorId" index="index" item="sensorId" open="(" separator="," close=")">
+                #{sensorId}
+            </foreach>
+            and
+        </if>
+        <if test="metricName != null">
+            metric_name = #{metricName}
+            and
+        </if>
+        start_time = #{startTime}
+        and end_time = #{endTime}
+    </select>
+    <select id="getSensorDeriveByConditionsAndDay" resultType="org.cug.geodt.weibo.sos.pojo.SensorDerive">
+        select
+            sensor_id,
+            metric_name,
+            max_value,
+            min_value,
+            avg_value,
+            value_number,
+            start_time,
+            end_time
+        from
+            sensor_derive_one_day
+        where
+        <if test="sensorId != null and sensorId.size() > 0">
+            sensor_id in
+            <foreach collection="sensorId" index="index" item="sensorId" open="(" separator="," close=")">
+                #{sensorId}
+            </foreach>
+            and
+        </if>
+        <if test="metricName != null">
+            metric_name = #{metricName}
+            and
+        </if>
+        start_time = #{startTime}
+        and end_time = #{endTime}
+    </select>
+
+    <select id="getSensorDeriveByConditionsAndWeek" resultType="org.cug.geodt.weibo.sos.pojo.SensorDerive">
+        select
+            sensor_id,
+            metric_name,
+            max_value,
+            min_value,
+            avg_value,
+            value_number,
+            start_time,
+            end_time
+        from
+            sensor_derive_one_week
+        where
+        <if test="sensorId != null and sensorId.size() > 0">
+            sensor_id in
+            <foreach collection="sensorId" index="index" item="sensorId" open="(" separator="," close=")">
+                #{sensorId}
+            </foreach>
+            and
+        </if>
+        <if test="metricName != null">
+            metric_name = #{metricName}
+            and
+        </if>
+        start_time = #{startTime}
+        and end_time = #{endTime}
+    </select>
+
+    <select id="getSensorDeriveByConditionsAndMonth" resultType="org.cug.geodt.weibo.sos.pojo.SensorDerive">
+        select
+            sensor_id,
+            metric_name,
+            max_value,
+            min_value,
+            avg_value,
+            value_number,
+            start_time,
+            end_time
+        from
+            sensor_derive_one_month
+        where
+        <if test="sensorId != null and sensorId.size() > 0">
+            sensor_id in
+            <foreach collection="sensorId" index="index" item="sensorId" open="(" separator="," close=")">
+                #{sensorId}
+            </foreach>
+            and
+        </if>
+        <if test="metricName != null">
+            metric_name = #{metricName}
+            and
+        </if>
+        start_time = #{startTime}
+        and end_time = #{endTime}
+    </select>
+    <select id="getSensorDeriveByConditionsAndYear" resultType="org.cug.geodt.weibo.sos.pojo.SensorDerive">
+        select
+            sensor_id,
+            metric_name,
+            max_value,
+            min_value,
+            avg_value,
+            value_number,
+            start_time,
+            end_time
+        from
+            sensor_derive_one_year
+        where
+        <if test="sensorId != null and sensorId.size() > 0">
+            sensor_id in
+            <foreach collection="sensorId" index="index" item="sensorId" open="(" separator="," close=")">
+                #{sensorId}
+            </foreach>
+            and
+        </if>
+        <if test="metricName != null">
+            metric_name = #{metricName}
+            and
+        </if>
+        start_time = #{startTime}
+        and end_time = #{endTime}
+    </select>
+
+</mapper>

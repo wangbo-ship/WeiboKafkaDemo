@@ -1,0 +1,439 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.cug.geodt.weibo.sos.mapper.CapabilityMapper">
+
+    <select id="getFeatureOfInterestById" resultType="org.cug.geodt.weibo.sos.pojo.FeatureOfInterest">
+        select feature_id,name,srid,ST_AsText(area) AS geometry from feature_of_Interest
+        <if test="FeatureId != null and FeatureId.size()>0">
+            where feature_id in
+            <foreach collection="FeatureId" index="index" item="FeatureId" open="(" separator="," close=")">
+                #{featureId}
+            </foreach>
+        </if>
+    </select>
+    <select id="getProcedureById" resultType="org.cug.geodt.weibo.sos.pojo.Procedure">
+        select procedure_id,name,description,procedure_description_format from procedure
+        <if test="procedureId != null and procedureId.size()>0">
+            where procedure_id in
+            <foreach collection="procedureId" index="index" item="procedureId" open="(" separator="," close=")">
+                #{procedureId}
+            </foreach>
+        </if>
+    </select>
+    <select id="getOfferingById" resultType="org.cug.geodt.weibo.sos.pojo.Offering">
+        select offering_id,name,description from offering
+        <if test="offeringId != null and offeringId.size()>0">
+            where offering_id in
+            <foreach collection="offeringId" index="index" item="offeringId" open="(" separator="," close=")">
+                #{offeringId}
+            </foreach>
+        </if>
+    </select>
+
+    <resultMap id="TemporalFilterResultMap" type="org.cug.geodt.weibo.sos.pojo.TemporalFilter">
+        <result column="max_time" property="maxTime" />
+        <result column="min_time" property="minTime" />
+    </resultMap>
+    <select id="getFeatureTemporalFilterRangeFromFloat" resultMap="TemporalFilterResultMap">
+        SELECT max(obs_timestamp) as max_time,min(obs_timestamp) as min_time from sensor_data_float
+    </select>
+    <select id="getFeatureTemporalFilterRangeFromString" resultMap="TemporalFilterResultMap">
+        SELECT max(obs_timestamp) as max_time,min(obs_timestamp) as min_time from sensor_data_string
+    </select>
+    <select id="getFeatureSpatialFilterRange" resultType="org.cug.geodt.weibo.sos.pojo.SpatialFilter">
+        SELECT
+            ST_XMin(ST_Extent(area)) AS minX,
+            ST_YMin(ST_Extent(area)) AS minY,
+            ST_XMax(ST_Extent(area)) AS maxX,
+            ST_YMax(ST_Extent(area)) AS maxY
+        FROM feature_of_interest;
+    </select>
+    <select id="getFeatureTemporalFilterRangeFromFloatBySensorId"
+            resultMap="TemporalFilterResultMap">
+        SELECT max(obs_timestamp) as max_time,min(obs_timestamp) as min_time from sensor_data_float
+        <if test="sensorId != null and sensorId.size()>0">
+            where sensor_id in
+            <foreach collection="sensorId" index="index" item="sensorId" open="(" separator="," close=")">
+                #{sensorId}
+            </foreach>
+        </if>
+    </select>
+
+    <select id="getFeatureTemporalFilterRangeFromStringBySensorId"
+            resultMap="TemporalFilterResultMap">
+        SELECT max(obs_timestamp) as max_time,min(obs_timestamp) as min_time from sensor_data_string
+        <if test="sensorId != null and sensorId.size()>0">
+            where sensor_id in
+            <foreach collection="sensorId" index="index" item="sensorId" open="(" separator="," close=")">
+                #{sensorId}
+            </foreach>
+        </if>
+    </select>
+
+
+    <resultMap id="OfferingProduceSensorInfoResultMap" type="org.cug.geodt.weibo.sos.pojo.OfferingProduceSensorInfo">
+        <result column="offering_id" property="offeringId" />
+        <result column="offering_name" property="offeringName" />
+        <result column="offering_description" property="offeringDescription" />
+        <result column="procedure_id" property="procedureId"/>
+        <result column="produce_name" property="procedureName" />
+        <result column="procedure_description" property="procedureDescription"/>
+        <result column="procedure_Description_format" property="procedureDescriptionFormat"/>
+        <result column="sensor_id" property="sensorId"/>
+        <result column="sensor_name" property="sensorName"/>
+        <result column="sensor_type" property="sensorType"/>
+        <result column="sensor_attribute" property="sensorAttribute"/>
+        <result column="srid" property="srid"/>
+        <result column="sensor_longitude" property="sensorLongitude"/>
+        <result column="sensor_latitude" property="sensorLatitude"/>
+        <result column="sensor_create_time" property="sensorCreateTime"/>
+        <result column="create_user_id" property="createUserId"/>
+        <result column="metrics" property="metrics"/>
+        <result column="velocity" property="velocity"/>
+    </resultMap>
+    <select id="getAllOfferingProduceSensorInfo"
+            resultMap="OfferingProduceSensorInfoResultMap">
+        SELECT A.offering_id,
+               A."name" As offering_name,
+               A."description" AS offering_description,
+               C.procedure_id,
+               C."name" as produce_name,
+               C."description" as procedure_description,
+               C.procedure_description_format,
+               E.*
+        from offering AS A
+            JOIN offering_procedure_association_tbl AS B on A.offering_id = B.offering_id
+            JOIN "procedure" AS C ON C.procedure_id = B.procedure_id
+            JOIN "sensorInfo_procedure_association_tbl" as D ON D.procedure_id =  C.procedure_id
+            JOIN sensor_info as E ON d.sensor_id = e.sensor_id
+    </select>
+
+
+    <resultMap id="findSensorByGeometricResultMap" type="org.cug.geodt.weibo.sos.pojo.SensorInfoFeature">
+        <result column="sensor_id" property="sensorId"/>
+        <result column="sensor_name" property="sensorName"/>
+        <result column="sensor_type" property="sensorType"/>
+        <result column="sensor_attribute" property="sensorAttribute"/>
+        <result column="sensor_info_srid" property="sensorInfoSrid"/>
+        <result column="sensor_longitude" property="sensorLongitude"/>
+        <result column="sensor_latitude" property="sensorLatitude"/>
+        <result column="sensor_create_time" property="sensorCreateTime"/>
+        <result column="create_user_id" property="createUserId"/>
+        <result column="metrics" property="metrics"/>
+        <result column="feature_id" property="featureId"/>
+        <result column="feature_name" property="featureName"/>
+        <result column="feature_srid" property="featureSrid"/>
+        <result column="area" property="featureArea"/>
+    </resultMap>
+    <select id="findSensorByGeometric" resultMap="findSensorByGeometricResultMap">
+        SELECT
+            sensor_id,
+            sensor_name,
+            sensor_type,
+            sensor_attribute,
+            sensor_info.srid as sensor_info_srid,
+            sensor_create_time,
+            create_user_id,
+            metrics,
+            velocity,
+            feature_id,
+            name as feature_name,
+            feature_of_interest.srid as feature_srid,
+            area
+        FROM sensor_info
+            JOIN feature_of_interest ON feature_of_interest.area = ST_GeomFromText(#{geometry}, 4326)
+        WHERE
+            ST_Within(
+                      ST_SetSRID(ST_MakePoint(sensor_info.sensor_longitude, sensor_info.sensor_latitude), 4326),
+                      ST_GeomFromText(#{geometry}, 4326)
+                  )
+        <if test="sensorId != null and sensorId.size()>0">
+            and sensor_id in
+            <foreach collection="sensorId" index="index" item="sensorId" open="(" separator="," close=")">
+                #{sensorId}
+            </foreach>
+        </if>
+    </select>
+
+    <resultMap id="getCapabilityInfoResultMap" type="org.cug.geodt.weibo.sos.pojo.OfferingProcedureFeature">
+        <result column="dataset_id" property="datasetId"/>
+        <result column="dataset_type" property="datasetType"/>
+        <result column="observation_type" property="observationType"/>
+        <result column="offering_id" property="offeringId"/>
+        <result column="offering_identifier" property="offeringIdentifier"/>
+        <result column="offering_description" property="offeringDescription"/>
+        <result column="offering_is_reference" property="offeringIsReference"/>
+        <result column="offering_sampling_time_start" property="offeringSamplingTimeStart"/>
+        <result column="offering_sampling_time_end" property="offeringSamplingTimeEnd"/>
+        <result column="offering_result_time_start" property="offeringResultTimeStart"/>
+        <result column="offering_result_time_end" property="offeringResultTimeEnd"/>
+        <result column="offering_geom" property="offeringGeom"/>
+        <result column="procedure_id" property="procedureId"/>
+        <result column="procedure_identifier" property="procedureIdentifier"/>
+        <result column="procedure_name" property="procedureName"/>
+        <result column="procedure_description_format" property="procedureDescriptionFormat"/>
+        <result column="feature_id" property="featureId"/>
+        <result column="feature_identifier" property="featureIdentifier"/>
+        <result column="feature_name" property="featureName"/>
+        <result column="feature_description" property="featureDescription"/>
+        <result column="feature_area" property="featureArea"/>
+        <result column="feature_srid" property="featureSRID"/>
+    </resultMap>
+
+    <select id="getCapabilityInfoBySensorIds" resultMap="getCapabilityInfoResultMap">
+        SELECT
+            dataset.dataset_id,
+            dataset.dataset_type,
+            dataset.observation_type,
+            offering.offering_id,
+            offering.identifier AS offering_identifier,
+            offering.NAME AS offering_name,
+            offering.description AS offering_description,
+            offering.is_reference AS offering_is_reference,
+            offering.sampling_time_start AS offering_sampling_time_start,
+            offering.sampling_time_end AS offering_sampling_time_end,
+            offering.result_time_start AS offering_result_time_start,
+            offering.result_time_end AS offering_result_time_end,
+--             offering.geom AS offering_geom,
+            procedure.procedure_id,
+            procedure.identifier AS procedure_identifier,
+            procedure.name AS procedure_name,
+            procedure.description AS procedure_description,
+            procedure.procedure_description_format,
+            feature_of_interest.feature_id,
+            feature_of_interest.identifier AS feature_identifier,
+            feature_of_interest.NAME AS feature_name,
+            feature_of_interest.description AS feature_description,
+            ST_AsText(feature_of_interest.area) AS feature_area,
+            feature_of_interest.srid AS feature_srid
+        FROM
+            "dataset"
+                JOIN offering ON dataset.fk_offering_id = offering.offering_id
+                JOIN "procedure" ON dataset.fk_offering_id = "procedure".procedure_id
+                JOIN feature_of_interest ON feature_of_interest.feature_id = dataset.fk_feature_id
+        <if test="sensorId != null and sensorId.size()>0">
+            where dataset_id in
+            (select fk_dataset_id from "sensor_data_string" where sensor_id in
+            <foreach collection="sensorId" index="index" item="sensorId" open="(" separator="," close=")">
+                #{sensorId}
+            </foreach>
+            ) LIMIT 1
+        </if>
+    </select>
+
+    <select id="findSensorInfoByDatasetId" resultType="org.cug.geodt.weibo.sos.pojo.sensor.info.SensorInfo">
+        SELECT
+            *
+        from
+            sensor_info
+        where
+            sensor_id in
+            (
+            SELECT
+                DISTINCT sensor_id
+            FROM
+                "sensor_data_float"
+            where
+                fk_dataset_id = #{datasetId}
+            )
+    </select>
+    <select id="getSensorIdByProcedureId" resultType="java.lang.String">
+        SELECT
+            sensor_id
+        from
+            sensor_data_float
+        where
+                fk_dataset_id =
+                (
+                    SELECT
+                        dataset_id
+                    FROM
+                        "dataset"
+                    where
+                        fk_procedure_id = #{procedureId}
+                )
+    </select>
+
+    <select id="getSensorIdByOfferingIdentifierAndProcedureIdentifier" resultType="java.lang.String">
+        SELECT
+            distinct sensor_id
+        from
+            sensor_data_string
+        where
+            fk_dataset_id =
+            (
+                SELECT
+                    dataset_id
+                from
+                    dataset
+                <if test="offeringIdentifier != null or procedureIdentifier != null or featureOfInterest !=null">
+                    where
+                    <if test="offeringIdentifier != null">
+                        fk_offering_id = (SELECT offering_id from offering where identifier=#{offeringIdentifier})
+                    </if>
+                    <if test="offeringIdentifier != null and procedureIdentifier != null">
+                        and
+                    </if>
+                    <if test="procedureIdentifier != null">
+                        fk_procedure_id=(SELECT procedure_id from "procedure" where identifier = #{procedureIdentifier})
+                    </if>
+                    <if test="featureOfInterest != null and procedureIdentifier != null">
+                        and
+                    </if>
+                    <if test="featureOfInterest != null">
+                        fk_feature_id=(SELECT feature_id from feature_of_interest where identifier = #{featureOfInterest})
+                    </if>
+                </if>
+            )
+    </select>
+
+
+    <resultMap id="getCapabilityInfoResultMapV2" type="org.cug.geodt.weibo.sos.pojo.sensor.OfferingProcedureFeatureSensorInfo">
+        <result column="dataset_id" property="datasetId"/>
+        <result column="dataset_type" property="datasetType"/>
+        <result column="observation_type" property="observationType"/>
+        <result column="offering_id" property="offeringId"/>
+        <result column="offering_identifier" property="offeringIdentifier"/>
+        <result column="offering_description" property="offeringDescription"/>
+        <result column="offering_is_reference" property="offeringIsReference"/>
+        <result column="offering_sampling_time_start" property="offeringSamplingTimeStart"/>
+        <result column="offering_sampling_time_end" property="offeringSamplingTimeEnd"/>
+        <result column="offering_result_time_start" property="offeringResultTimeStart"/>
+        <result column="offering_result_time_end" property="offeringResultTimeEnd"/>
+
+        <result column="procedure_id" property="procedureId"/>
+        <result column="procedure_identifier" property="procedureIdentifier"/>
+        <result column="procedure_name" property="procedureName"/>
+        <result column="procedure_description_format" property="procedureDescriptionFormat"/>
+        <result column="procedure_area" property="procedureArea"/>
+
+
+        <result column="feature_id" property="featureId"/>
+        <result column="feature_identifier" property="featureIdentifier"/>
+        <result column="feature_name" property="featureName"/>
+        <result column="feature_description" property="featureDescription"/>
+        <result column="feature_area" property="featureArea"/>
+        <result column="feature_srid" property="featureSRID"/>
+
+        <result column="sensor_id" property="sensorId"/>
+        <result column="sensor_long_name" property="sensorLongName"/>
+        <result column="sensor_type" property="sensorType"/>
+        <result column="sensor_srid" property="sensorSRID"/>
+        <result column="sensor_longitude" property="sensorLongitude"/>
+        <result column="sensor_latitude" property="sensorLatitude"/>
+        <result column="sensor_install_time" property="sensorInstallTime"/>
+        <result column="create_user_id" property="createUserId"/>
+        <result column="sensor_metrics" property="metrics"/>
+        <result column="sensor_length" property="sensorLength"/>
+        <result column="sensor_width" property="sensorWidth"/>
+        <result column="sensor_height" property="sensorHeight"/>
+        <result column="sensor_weight" property="sensorWeight"/>
+        <result column="organisation_name" property="organisationName"/>
+<!--        <result column="individual_name" property="individualName"/>-->
+        <result column="telephone" property="telephone"/>
+        <result column="country" property="country"/>
+        <result column="city" property="city"/>
+        <result column="administrative_area" property="administrativeArea"/>
+        <result column="address" property="address"/>
+        <result column="postal_code" property="postalCode"/>
+        <result column="email" property="email"/>
+        <result column="datasource_id" property="datasourceId"/>
+        <result column="datasource_type" property="datasourceType"/>
+        <result column="data_format" property="dataFormat"/>
+        <result column="obs_radius" property="obsRadius"/>
+        <result column="arcrole" property="arcrole"/>
+        <result column="obs_theme" property="obsTheme"/>
+        <result column="sample_duration" property="sampleDuration"/>
+        <result column="sample_interval" property="sampleInterval"/>
+        <result column="sensor_deploy_time" property="sensorDeployTime"/>
+        <result column="datasource_state" property="datasourceState"/>
+        <result column="sensor_short_name" property="sensorShortName"/>
+        <result column="intend_application" property="intendApplication"/>
+        <result column="equipment_manufacturer" property="equipmentManufacturer"/>
+        <result column="platform_id" property="platformId"/>
+        <result column="description" property="description"/>
+        <result column="platform_type" property="platformType"/>
+    </resultMap>
+    <select id="getCapabilityInfoBySensorIdsV2" resultMap="getCapabilityInfoResultMapV2">
+        SELECT
+            dataset.dataset_id,
+            dataset.dataset_type,
+            dataset.observation_type,
+            dataset.fk_platform_id as platform_id,
+            offering.offering_id,
+            offering.identifier AS offering_identifier,
+            offering.NAME AS offering_name,
+            offering.description AS offering_description,
+            offering.is_reference AS offering_is_reference,
+            offering.sampling_time_start AS offering_sampling_time_start,
+            offering.sampling_time_end AS offering_sampling_time_end,
+            offering.result_time_start AS offering_result_time_start,
+            offering.result_time_end AS offering_result_time_end,
+            PROCEDURE.procedure_id,
+            PROCEDURE.identifier AS procedure_identifier,
+            PROCEDURE.NAME AS procedure_name,
+            PROCEDURE.description AS procedure_description,
+            PROCEDURE.procedure_description_format,
+            PROCEDURE.area AS procedure_area,
+            feature_of_interest.feature_id,
+            feature_of_interest.identifier AS feature_identifier,
+            feature_of_interest.NAME AS feature_name,
+            feature_of_interest.description AS feature_description,
+            ST_AsText ( feature_of_interest.area ) AS feature_area,
+            feature_of_interest.srid AS feature_srid,
+            sensor_info.sensor_id,
+            sensor_info.sensor_long_name,
+            sensor_info.sensor_type,
+            sensor_info.srid AS sensor_srid,
+            sensor_info.sensor_longitude,
+            sensor_info.sensor_latitude,
+            sensor_info.sensor_install_time,
+            sensor_info.create_user_id,
+            sensor_info.metrics as sensor_metrics,
+            sensor_info.sensor_length,
+            sensor_info.sensor_width,
+            sensor_info.sensor_height,
+            sensor_info.sensor_weight,
+            sensor_info.organisation_name,
+--             sensor_info.individual_name,
+            sensor_info.telephone,
+            sensor_info.country,
+            sensor_info.city,
+            sensor_info.administrative_area,
+            sensor_info.address,
+            sensor_info.postal_code,
+            sensor_info.email,
+            sensor_info.datasource_id,
+            sensor_info.datasource_type,
+            sensor_info.obs_radius,
+            sensor_info.fk_platform,
+            sensor_info.data_format,
+            sensor_info.arcrole,
+            sensor_info.obs_theme,
+            sensor_info.sample_duration,
+            sensor_info.sample_interval,
+            sensor_info.sensor_deploy_time,
+            sensor_info.datasource_state,
+            sensor_info.sensor_short_name,
+            sensor_info.intend_application,
+            sensor_info.equipment_manufacturer,
+            sensor_info.description,
+            sensor_info.fk_platform as platform_type
+        FROM
+            "dataset"
+            JOIN offering ON dataset.fk_offering_id = offering.offering_id
+            JOIN "procedure" ON dataset.fk_offering_id = "procedure".procedure_id
+            JOIN feature_of_interest ON feature_of_interest.feature_id = dataset.fk_feature_id
+            JOIN sensor_info ON sensor_info.sensor_id = dataset.fk_sensor_id
+        <if test="sensorId != null and sensorId.size()>0">
+            where dataset.fk_sensor_id in
+            <foreach collection="sensorId" index="index" item="sensorId" open="(" separator="," close=")">
+                #{sensorId}
+            </foreach>
+        </if>
+    </select>
+
+
+
+
+</mapper>

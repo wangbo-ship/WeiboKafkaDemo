@@ -1,0 +1,360 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.cug.geodt.weibo.sos.mapper.InfoMapper">
+    <resultMap id="BaseResultMap" type="org.cug.geodt.weibo.sos.pojo.sensor.info.SensorInfo">
+        <id column="sensor_id" property="sensorId"/>
+        <result column="sensor_long_name" property="sensorLongName"/>
+        <result column="sensor_type" property="sensorType"/>
+        <result column="srid" property="srid"/>
+        <result column="sensor_longitude" property="sensorLongitude"/>
+        <result column="sensor_latitude" property="sensorLatitude"/>
+        <result column="sensor_install_time" property="sensorInstallTime"/>
+        <result column="create_user_id" property="createUserId"/>
+        <result column="metrics"  property="metrics" />
+    </resultMap>
+
+
+
+    <insert id="insertSensor" parameterType="org.cug.geodt.weibo.sos.pojo.sensor.info.SensorInfo" >
+        insert into sensor_info(sensor_id,sensor_long_name,sensor_type,srid,sensor_longitude,sensor_latitude,
+                                sensor_install_time,create_user_id,metrics,sensor_length,sensor_width,sensor_height,
+                                sensor_weight,organisation_name,telephone,country,city,address,postal_code,email,
+                                datasource_id,datasource_type,obs_radius,data_format,arcrole,obs_theme,sample_duration,
+                                sample_interval,sensor_deploy_time,datasource_state,intend_application,equipment_manufacturer,
+                                description,sensor_altitude,fk_platform)
+        values (#{sensorId},#{sensorLongName},#{sensorType},#{srid},#{sensorLongitude},
+                #{sensorLatitude},#{sensorInstallTime},#{createUserId},#{metrics},
+                #{sensorLength},#{sensorWidth},#{sensorHeight},#{sensorWeight},#{organisationName},
+                #{telephone},#{country},#{city},#{address},#{postalCode},#{email},#{datasourceId},
+                #{datasourceType},#{obsRadius},#{dataFormat},#{arcrole},#{obsTheme},#{sampleDuration},
+                #{sampleInterval},#{sensorDeployTime},#{datasourceState},#{intendApplication},#{equipmentManufacturer},
+                #{description},#{sensorAltitude},#{fkPlatform})
+    </insert>
+
+    <delete id="deleteBySensorId">
+        delete from sensor_info where sensor_id = #{sensorId}
+    </delete>
+
+    <select id="getAllSensorInfo" parameterType="java.lang.Object" resultMap="BaseResultMap">
+        select *
+        from sensor_info
+    </select>
+
+    <select id="getSensorInfoById" resultMap="BaseResultMap">
+        select * from sensor_info
+        where
+        sensor_id = #{sensorId}
+    </select>
+
+    <select id="getAllMetricsById" resultMap="BaseResultMap">
+        select metrics
+        from sensor_info
+        where sensor_id = #{sensorId}
+        group by metrics
+    </select>
+
+    <select id="getBySensorId" resultMap="BaseResultMap">
+        select *
+        from sensor_info
+        where sensor_id = #{sensorId}
+
+    </select>
+    <select id="getByString" resultMap="org.cug.geodt.weibo.sos.mapper.ObservationMapper.StringResultMap">
+        select *
+        from sensor_data_string
+        where sensor_id
+        in (select sensor_id from sensor_info where metrics->>'location' like '%sensor_data_string')
+    </select>
+
+    <select id="getByTime" parameterType="java.util.List" resultMap="org.cug.geodt.weibo.sos.mapper.ObservationMapper.FloatResultMap">
+        select *
+        from sensor_data_float
+        where
+        <if test="list != null and list.size() > 0">
+            obs_timestamp between ((select extract(epoch from now())) - 300) and  (select extract(epoch from now())) and sensor_id in
+            <foreach collection="list" index="index" item="sensor_id" open="(" separator="," close=")">
+            #{sensorId}
+            </foreach>
+        </if>
+    </select>
+
+    <select id="getLatest" resultMap="org.cug.geodt.weibo.sos.mapper.ObservationMapper.FloatResultMap">
+        select *
+        from sensor_data_float
+        where obs_timestamp
+        in (select max(obs_timestamp)
+        from sensor_data_float group by sensor_id)
+    </select>
+
+    <select id="getSensor_id" resultMap="org.cug.geodt.weibo.sos.mapper.ObservationMapper.FloatResultMap">
+        select sensor_id
+        from sensor_data_float
+        group by sensor_id
+    </select>
+
+    <select id="getSensor_idInSensorInfo" resultMap="BaseResultMap">
+        select sensor_id
+        from sensor_info
+        group by sensor_id
+    </select>
+
+    <select id="getSensorInfoByIdInString" resultMap="org.cug.geodt.weibo.sos.mapper.ObservationMapper.StringResultMap">
+        select *
+        from sensor_data_string
+        where sensor_id = #{sensorId}
+    </select>
+
+    <select id="getSensorInfoByIdInFloat" resultMap="org.cug.geodt.weibo.sos.mapper.ObservationMapper.FloatResultMap">
+        select *
+        from sensor_data_float
+        where sensor_id = #{sensorId}
+    </select>
+
+    <select id="getMetricsByMetricName" resultMap="BaseResultMap">
+        select metrics
+        from sensor_info
+        where sensor_id = #{sensorId}
+    </select>
+
+    <select id="getLatlonById" resultMap="BaseResultMap">
+        select sensor_id, sensor_longitude, sensor_latitude
+        from sensor_info
+        where
+        <if test="sensorId != null and sensorId.size() > 0">
+            sensor_id in
+            <foreach collection="sensorId" index="index" item="sensorId" open="(" separator="," close=")">
+                #{sensorId}
+            </foreach>
+        </if>
+    </select>
+
+    <select id="getAllSensorGroup" resultMap="BaseResultMap">
+        select *
+        from sensor_info
+    </select>
+
+    <select id="getSensorInfoBySensorType" resultMap="BaseResultMap">
+        select *
+        from sensor_info
+        where sensor_type = #{sensorType}
+    </select>
+
+    <select id="getOldestObsTimeById" resultMap="BaseResultMap">
+        select metrics
+        from sensor_info
+        where sensor_id = #{sensorId}
+    </select>
+
+    <select id="getLatestObsTimeById" resultMap="BaseResultMap">
+        select metrics
+        from sensor_info
+        where sensor_id = #{sensorId}
+    </select>
+
+    <select id="getLatestObsTimestampByIdAndDate" resultMap="BaseResultMap">
+        select metrics
+        from sensor_info
+        where sensor_id = #{sensorId}
+    </select>
+
+    <select id="getOldestObsTimestampByIdAndDate" resultMap="BaseResultMap">
+        select metrics
+        from sensor_info
+        where sensor_id = #{sensorId}
+    </select>
+
+    <select id="getSensorNumBySensorType" resultMap="BaseResultMap">
+        select sensor_type,count(sensor_id) as number
+        from sensor_info
+        group by sensor_type
+    </select>
+
+    <select id="getMetricsBySensorType" resultMap="BaseResultMap">
+        select *
+        from sensor_info
+        where sensor_type = #{sensorType}
+    </select>
+
+    <select id="selectBySensorId"
+            resultMap="NewInfoResultMap">
+        select *
+        from sensor_info
+        where sensor_id = #{sensorId}
+    </select>
+
+    <select id="selectAllSensorId" resultType="java.lang.String">
+        select sensor_id
+        from sensor_info
+    </select>
+
+    <select id="getAllSensorDetailByPlatformId" resultMap="NewInfoResultMap">
+        select sensor_id, sensor_long_name
+        from sensor_info
+        where
+        <if test="platformId != null and platformId.size() > 0">
+            fk_platform in
+            <foreach collection="platformId" index="index" item="platformId" open="(" separator="," close=")">
+                #{platformId}
+            </foreach>
+        </if>
+    </select>
+
+    <select id="getPublishedInfo" resultMap="SensorPublishedResponse">
+        SELECT t1.*, CASE WHEN t2.sensor_id IS NOT NULL THEN 1 ELSE 0 END AS is_published
+        FROM sensor_info t1
+                 LEFT JOIN sensor_publish t2 ON t1.sensor_id = t2.sensor_id LIMIT #{pageSize} OFFSET  #{pageNum}
+    </select>
+
+    <select id="getAllSensorId" resultType="java.lang.String">
+        select distinct (sensor_id) from sensor_info
+    </select>
+
+    <select id="getSensorIsPublished" resultMap="SensorPublishedResponse">
+        SELECT t1.*, CASE WHEN t2.sensor_id IS NOT NULL THEN 1 ELSE 0 END AS is_published
+        FROM (SELECT * FROM sensor_info  WHERE  sensor_id =  #{sensorId}) t1
+                 LEFT JOIN sensor_publish t2 ON t1.sensor_id = t2.sensor_id
+    </select>
+    <select id="getTotalRecordCount" resultType="java.lang.Integer">
+        select count(*) from sensor_info
+    </select>
+    <select id="getSensorBasicById" resultType="org.cug.geodt.weibo.sos.pojo.sensor.info.SensorInfo">
+        select * from sensor_info where sensor_id = #{sensorId}
+    </select>
+    <select id="getAllSensorTypes" resultType="java.lang.String">
+        select distinct (sensor_type) from sensor_info
+    </select>
+    <select id="getSensorIdBySensorType" resultType="java.lang.String">
+        select sensor_id from sensor_info where sensor_type = #{sensorType}
+    </select>
+    <select id="getMetricBySensorId" resultType="java.lang.String">
+        select metrics from sensor_info where sensor_id = #{sensorId}
+    </select>
+    <select id="getMaxTimeStampById" resultType="java.lang.Long">
+        select MAX(obs_timestamp) from sensor_data_float where sensor_id = #{sensorId}
+    </select>
+    <select id="getSatelliteStatisticalDataByType" resultType="org.cug.geodt.weibo.sos.vo.DataEntry">
+        SELECT satellite_type as type,count(*) as number FROM satellite GROUP BY satellite.satellite_type
+    </select>
+    <select id="getSatelliteRecords" resultType="java.lang.Long">
+        select count(*) from satellite
+    </select>
+    <select id="getUavStatisticalDataByType" resultType="org.cug.geodt.weibo.sos.vo.DataEntry">
+        SELECT uav_type as type,count(*) as number FROM uav GROUP BY uav_type
+    </select>
+
+    <select id="getGroundStationStatisticalDataByType" resultType="org.cug.geodt.weibo.sos.vo.DataEntry">
+        SELECT station_type as type,count(*) as number FROM ground_station GROUP BY station_type
+    </select>
+
+    <select id="getOceanStatisticalDataByType" resultType="org.cug.geodt.weibo.sos.vo.DataEntry">
+        SELECT ocean_type as type,count(*) as number FROM ocean GROUP BY ocean_type
+    </select>
+
+    <select id="getUavRecords" resultType="java.lang.Long">
+        select count(*) from uav
+    </select>
+
+    <select id="getGroundStationRecords" resultType="java.lang.Long">
+        select count(*) from ground_station
+    </select>
+
+    <select id="getOceanRecords" resultType="java.lang.Long">
+        select count(*) from ocean
+    </select>
+    <select id="getMonitorEquipment" resultType="java.lang.Integer">
+        select count(*)
+        from monitor_equipment_monitor_equipment_sensor_ground_stay
+    </select>
+    <select id="getSchemaInfo" resultType="org.cug.geodt.weibo.sos.vo.SchemaInfo">
+        SELECT
+            A.attnum as num,
+            A.attname AS fieldName,
+            T.typname AS fieldType,
+            A.attlen AS length,
+            A.attnotnull AS notNull
+        FROM
+            pg_class C,
+            pg_attribute A,
+            pg_type T
+        WHERE
+            C.relname = 'sensor_info'
+          AND A.attnum > 0
+          AND A.attrelid = C.oid
+          AND A.atttypid = T.oid
+        ORDER BY
+            A.attnum;
+    </select>
+
+
+    <resultMap id="NewInfoResultMap" type="org.cug.geodt.weibo.sos.pojo.sensor.info.SensorInfo">
+        <result column="sensor_id" property="sensorId"/>
+        <result column="sensor_long_name" property="sensorLongName"/>
+        <result column="sensor_type" property="sensorType"/>
+        <result column="srid" property="srid"/>
+        <result column="sensor_longitude" property="sensorLongitude"/>
+        <result column="sensor_latitude" property="sensorLatitude"/>
+        <result column="sensor_install_time" property="sensorInstallTime"/>
+        <result column="create_user_id" property="createUserId"/>
+        <result column="sensor_metrics" property="metrics"/>
+        <result column="sensor_length" property="sensorLength"/>
+        <result column="sensor_width" property="sensorWidth"/>
+        <result column="sensor_height" property="sensorHeight"/>
+        <result column="sensor_weight" property="sensorWeight"/>
+        <result column="organisation_name" property="organisationName"/>
+        <!--        <result column="individual_name" property="individualName"/>-->
+        <result column="telephone" property="telephone"/>
+        <result column="country" property="country"/>
+        <result column="city" property="city"/>
+        <result column="administrative_area" property="administrativeArea"/>
+        <result column="address" property="address"/>
+        <result column="postal_code" property="postalCode"/>
+        <result column="email" property="email"/>
+        <result column="datasource_id" property="datasourceId"/>
+        <result column="datasource_type" property="datasourceType"/>
+        <result column="delivery_point" property="deliveryPoint"/>
+    </resultMap>
+
+    <resultMap id="SensorPublishedResponse" type="org.cug.geodt.weibo.sos.pojo.sensor.sos.SensorPublishedResponse">
+
+        <result column="sensor_id" property="sensorId"/>
+        <result column="sensor_long_name" property="sensorLongName"/>
+        <result column="sensor_type" property="sensorType"/>
+        <result column="sensor_longitude" property="sensorLongitude"/>
+        <result column="sensor_latitude" property="sensorLatitude"/>
+        <result column="sensor_install_time" property="sensorInstallTime"/>
+        <result column="create_user_id" property="createUserId"/>
+        <result column="sensor_metrics" property="metrics"/>
+        <result column="sensor_length" property="sensorLength"/>
+        <result column="sensor_width" property="sensorWidth"/>
+        <result column="sensor_height" property="sensorHeight"/>
+        <result column="sensor_weight" property="sensorWeight"/>
+        <result column="organisation_name" property="organisationName"/>
+        <result column="telephone" property="telephone"/>
+        <result column="country" property="country"/>
+        <result column="city" property="city"/>
+        <result column="administrative_area" property="administrativeArea"/>
+        <result column="address" property="address"/>
+        <result column="postal_code" property="postalCode"/>
+        <result column="email" property="email"/>
+        <result column="datasource_id" property="datasourceId"/>
+        <result column="datasource_type" property="datasourceType"/>
+        <result column="data_format" property="dataFormat"/>
+        <result column="obs_radius" property="obsRadius"/>
+        <result column="arcrole" property="arcrole"/>
+        <result column="obs_theme" property="obsTheme"/>
+        <result column="sample_duration" property="sampleDuration"/>
+        <result column="sample_interval" property="sampleInterval"/>
+        <result column="sensor_deploy_time" property="sensorDeployTime"/>
+        <result column="datasource_state" property="datasourceState"/>
+        <result column="sensor_short_name" property="sensorShortName"/>
+        <result column="intend_application" property="intendApplication"/>
+        <result column="equipment_manufacturer" property="equipmentManufacturer"/>
+        <result column="description" property="description"/>
+        <result column="delivery_point" property="deliveryPoint"/>
+        <result column="is_published" property="isPublished"/>
+    </resultMap>
+
+
+</mapper>

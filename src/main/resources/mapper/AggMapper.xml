@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.cug.geodt.weibo.sos.mapper.AggMapper">
+    <resultMap id="BaseResultMap" type="org.cug.geodt.weibo.sos.pojo.SensorDerive">
+        <id column="sensor_id" property="sensorId"/>
+        <result column="max_value" property="maxValue"/>
+        <result column="min_value" property="minValue"/>
+        <result column="avg_value" property="avgValue"/>
+        <result column="start_time" property="startTime"/>
+        <result column="end_time" property="endTime"/>
+        <result column="value_number" property="valueNumber"/>
+        <result column="metric_name" property="metricName"/>
+    </resultMap>
+
+
+    <select id="getSensorIdInDerive1" resultMap="BaseResultMap">
+        select sensor_id
+        from sensor_derive1
+        group by sensor_id
+    </select>
+
+    <select id="getStartTimeById" resultMap="BaseResultMap">
+        select start_time
+        from sensor_derive1
+        where sensor_id = #{sensorId}
+        group by start_time
+    </select>
+
+    <select id="getEndTimeById" resultMap="BaseResultMap">
+        select end_time
+        from sensor_derive1
+        where sensor_id = #{sensorId}
+        group by end_time
+    </select>
+
+    <select id="getAllValueMeetTime" resultMap="BaseResultMap">
+        select *
+        from sensor_derive1
+        where sensor_id = #{sensorId}
+        and start_time = #{startTime}
+        and end_time = #{endTime}
+    </select>
+
+    <select id="getMetricNameInDerive1" resultMap="BaseResultMap">
+        select metric_name
+        from sensor_derive1
+        group by metric_name
+    </select>
+
+    <select id="getObsTimeStamp" resultMap="org.cug.geodt.weibo.sos.mapper.ObservationMapper.FloatResultMap">
+        select obs_timestamp
+        from sensor_data_float
+        where sensor_id = #{sensorId}
+        group by obs_timestamp
+    </select>
+
+
+    <select id="getAllValueFloatToDerive" resultMap="BaseResultMap">
+        select
+        sensor_id,
+        metric_name,
+        max(metric_value) as max_value,
+        min(metric_value) as min_value,
+        avg(metric_value) as avg_value,
+        #{startTime} as start_time,
+        #{endTime} as end_time,
+        count(*) as value_number
+        from sensor_data_float
+        where obs_timestamp between #{startTime}
+        and #{endTime}
+        and sensor_id = #{sensorId}
+        group by sensor_id, metric_name;
+    </select>
+
+    <select id="getAllByValueMeeTimeQ" resultMap="BaseResultMap">
+        select *
+        from sensor_derive_a_quarter
+        where sensor_id = #{sensorId}
+        and start_time = #{startTime}
+        and end_time = #{endTime}
+    </select>
+
+    <select id="getAllByValueMeeTimeH" resultMap="BaseResultMap">
+        select *
+        from sensor_derive_one_hour
+        where sensor_id = #{sensorId}
+        and start_time = #{startTime}
+        and end_time = #{endTime}
+    </select>
+
+    <select id="getAllByValueMeeTimeW" resultMap="BaseResultMap">
+        select *
+        from sensor_derive_one_week
+        where sensor_id = #{sensorId}
+        and start_time = #{startTime}
+        and end_time = #{endTime}
+    </select>
+
+    <select id="getAllByValueMeeTimeD" resultMap="BaseResultMap">
+        select *
+        from sensor_derive_one_day
+        where sensor_id = #{sensorId}
+        and start_time = #{startTime}
+        and end_time = #{endTime}
+    </select>
+
+    <select id="getAllByValueMeeTimeM" resultMap="BaseResultMap">
+         select *
+        from sensor_derive_one_month
+        where sensor_id = #{sensorId}
+        and start_time = #{startTime}
+        and end_time = #{endTime}
+    </select>
+
+    <select id="getAllByValueMeeTimeY" resultMap="BaseResultMap">
+        select *
+        from sensor_derive_one_year
+        where sensor_id = #{sensorId}
+        and start_time = #{startTime}
+        and end_time = #{endTime}
+    </select>
+
+    <select id="getTimeQ" resultMap="BaseResultMap">
+        select start_time, end_time
+        from sensor_derive_a_quarter
+        where sensor_id = #{sensorId}
+    </select>
+
+    <select id="getTimeH" resultMap="BaseResultMap">
+        select start_time, end_time
+        from sensor_derive_one_hour
+        where sensor_id = #{sensorId}
+    </select>
+
+    <select id="getTimeD" resultMap="BaseResultMap">
+        select start_time, end_time
+        from sensor_derive_one_day
+        where sensor_id = #{sensorId}
+    </select>
+
+    <select id="getTimeW" resultMap="BaseResultMap">
+        select start_time, end_time
+        from sensor_derive_one_week
+        where sensor_id = #{sensorId}
+    </select>
+
+    <select id="getTimeM" resultMap="BaseResultMap">
+        select start_time, end_time
+        from sensor_derive_one_month
+        where sensor_id = #{sensorId}
+    </select>
+
+    <select id="getTimeY" resultMap="BaseResultMap">
+        select start_time, end_time
+        from sensor_derive_one_year
+        where sensor_id = #{sensorId}
+    </select>
+
+
+
+
+</mapper>

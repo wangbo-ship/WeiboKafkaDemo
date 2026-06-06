@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.cug.geodt.weibo.sos.mapper.SensorPublishMapper">
+    <insert id="insertPublishedData" parameterType = "org.cug.geodt.weibo.sos.pojo.sensor.SensorPublish">
+        insert into sensor_publish(sensor_id,published_time,published_user,description)
+        values (#{sensorId},#{publishedTime},#{publishedUser},#{description})
+    </insert>
+    <select id="getNotPublishedIds" resultType="java.lang.String">
+        SELECT sensor_id
+        FROM (SELECT UNNEST(<foreach collection="list" item="item" open="(" close=")" separator=",">
+        #{item}
+    </foreach>) AS sensor_id) sp
+        WHERE sensor_id NOT IN (
+        SELECT sensor_id
+        FROM sensor_publish
+        WHERE sensor_id IN
+              <foreach collection="list" item="item" open="(" close=")" separator=",">
+        #{item}
+            </foreach>
+    </select>
+    <select id="getAllPublishedIds" resultType="java.lang.String">
+        select sensor_id
+        from sensor_publish
+    </select>
+</mapper>
