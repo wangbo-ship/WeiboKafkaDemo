@@ -1,5 +1,6 @@
 package org.cug.geodt.weibo.sos.interceptor;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.web.servlet.HandlerInterceptor;
@@ -15,6 +16,7 @@ import static org.cug.geodt.weibo.sos.common.constants.RedisConstants.KEY_PREFIX
  * @Date 2023/10/9 14:50
  * @Description 拦截器实现接口调用次数统计
  */
+@Slf4j
 @Configuration
 public class RequestCountInterceptor implements HandlerInterceptor {
 
@@ -27,10 +29,14 @@ public class RequestCountInterceptor implements HandlerInterceptor {
     }
 
     @Override
-    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
         String attribute = (String) request.getAttribute("org.springframework.web.servlet.HandlerMapping.bestMatchingPattern");
-        stringRedisTemplate.opsForValue().increment(KEY_PREFIX+attribute);
-        return HandlerInterceptor.super.preHandle(request, response, handler);
+        try {
+            stringRedisTemplate.opsForValue().increment(KEY_PREFIX + attribute);
+        } catch (Exception e) {
+            log.debug("Skip request count statistics, Redis unavailable: {}", e.getMessage());
+        }
+        return true;
     }
 
 

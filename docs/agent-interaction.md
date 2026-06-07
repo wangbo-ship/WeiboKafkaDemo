@@ -75,32 +75,107 @@ Tool 层               ← SOS / WFS / GeoMesa / 爬虫等
 
 这符合「先规划、后执行」的业务 Agent 设计原则。
 
-### 2.4 会话状态（Memory）
+### 2.4 会话记忆（Memory）
 
-每个会话维护一份 `TaskContext`，核心字段：
+本模块具备**任务会话级记忆**，用于支撑多轮补参、确认执行与结果追溯。需要与 ChatGPT 式「全文聊天历史」或「跨会话用户偏好」区分开来。
+
+#### 2.4.1 记忆是什么
+
+记忆的本质是：在同一会话（`conversationId`）内，系统持久保存一份 **`TaskContext`（任务上下文）**，每轮 `/chat` 请求都会：
+
+1. 按 `conversationId` 加载已有上下文（首轮无 ID 则自动创建）
+2. 从本轮 `userMessage` 抽取新参数，**合并**进已有 `slots`（有值才覆盖，不会无故清空）
+3. 更新任务状态、执行计划、溯源日志等
+4. 写回存储，供下一轮继续使用
+
+因此用户可以在多轮对话中逐步补充参数，无需每轮重复说明城市、时间等信息。
+
+#### 2.4.2 会记住什么
+
+| 字段 / 内容 | 说明 |
+|-------------|------|
+| `conversationId` / `taskId` | 会话与任务标识 |
+| `taskType` | 已识别的任务类型 |
+| `status` | 当前阶段（补参中 / 待确认 / 执行中 / 已完成等） |
+| `slots` | 已抽取的业务参数（城市、日期、观测属性等） |
+| `missingInputs` | 仍缺失的必填参数 |
+| `plan` | 参数齐全后生成的执行计划 |
+| `confirmed` | 用户是否已确认执行 |
+| `artifacts` | 中间产物与最终结果（如 SOAP 预览、`wfsUrl`） |
+| `stepLogs` | 每轮交互与 Tool 调用的溯源记录 |
+| `lastUserIntent` / `lastUserMessage` | 最近一轮意图与原始输入 |
+| `turnCount` | 对话轮数 |
+| `createdAt` / `updatedAt` | 创建与最后更新时间 |
+
+`TaskContext` 结构示例：
 
 ```json
 {
-  "conversationId": "会话 ID",
-  "taskId": "任务 ID",
-  "taskType": "sos_to_wfs",
-  "status": "COLLECTING_PARAMS | PLANNED | EXECUTING | COMPLETED | FAILED | CANCELLED",
+  "conversationId": "abc-123",
+  "taskId": "task-456",
+  "taskType": "SOS_TO_WFS",
+  "status": "PLANNED",
   "slots": {
     "city": "武汉市",
     "beginDate": "2024-03-30",
     "endDate": "2024-05-30",
+    "beginTime": "2024-03-30T00:00:00.000Z",
+    "endTime": "2024-05-30T23:59:59.999Z",
     "observedProperty": "情感得分",
+    "featureOfInterest": "http://www.org.cug.geodt/feature/city4201",
     "shouldPublishWfs": true
   },
   "missingInputs": [],
   "confirmed": false,
+  "lastUserIntent": "SUPPLY_PARAMS",
+  "lastUserMessage": "我要武汉市的",
   "artifacts": {},
+  "plan": { "executable": true, "steps": ["..."] },
   "stepLogs": [],
-  "turnCount": 2
+  "turnCount": 2,
+  "createdAt": 1780795194534,
+  "updatedAt": 1780795194534
 }
 ```
 
-默认使用**内存存储**（`InMemoryTaskContextStore`），会话 TTL 默认 2 小时，后续可替换为 Redis / 数据库。
+#### 2.4.3 不会记住什么
+
+| 能力 | 当前状态 |
+|------|----------|
+| 完整聊天历史（每轮 user/assistant 全文） | **未实现**，仅保留 `lastUserMessage` |
+| 跨会话长期记忆（用户偏好、常用城市等） | **未实现**，新 `conversationId` 即新任务 |
+| 服务重启后恢复会话 | **不支持**，内存存储重启即丢失 |
+| Redis / 数据库持久化 | **接口已预留**（`TaskContextStore`），当前仅内存实现 |
+
+#### 2.4.4 前端如何使用记忆
+
+1. **首轮**调用 `POST /agent/interaction/chat` 时可不传 `conversationId`
+2. **保存**响应中的 `conversationId`（localStorage / 页面状态均可）
+3. **后续每一轮**请求都带上同一个 `conversationId`
+4. 页面刷新后若仍要续聊，用同一 ID 继续请求；若 ID 已过期或服务已重启，需重新发起任务
+5. 可用 `GET /agent/interaction/context/{conversationId}` 恢复当前任务状态用于 UI 展示
+
+记忆使用流程：
+
+```
+首轮 chat（无 conversationId）
+    → 响应返回 conversationId + 已收集的 slots
+第二轮 chat（携带 conversationId + 补充参数）
+    → 合并 slots，更新 missingInputs / plan
+确认轮 chat（携带 conversationId + confirmed: true）
+    → 执行 Tool，写入 artifacts / stepLogs
+```
+
+#### 2.4.5 存储实现与过期策略
+
+- 实现类：`InMemoryTaskContextStore`（进程内 `ConcurrentHashMap`）
+- 配置项：`agent.interaction.session-ttl-seconds`，默认 **7200 秒（2 小时）**
+- 每次 `get` / `save` / `create` 时会清理已过期会话
+- 过期后会话不可恢复，再次使用旧 `conversationId` 会按新会话处理或查不到上下文
+
+后续计划通过实现 `TaskContextStore` 接口，将存储替换为 Redis 或数据库，上层 REST 接口与 `TaskContext` 模型保持不变。
+
+> 前端对接细节与字段说明见：[agent-interaction-api.md](./agent-interaction-api.md)
 
 ### 2.5 数据溯源（Provenance）
 
@@ -135,6 +210,8 @@ Tool 层               ← SOS / WFS / GeoMesa / 爬虫等
 ---
 
 ## 4. REST API 说明
+
+> 面向前端的完整接口文档（请求/响应字段、枚举、调用示例、状态机）见：**[agent-interaction-api.md](./agent-interaction-api.md)**
 
 ### 4.1 多轮对话（主入口）
 
@@ -369,6 +446,7 @@ agent:
 
 ## 11. 相关文件索引
 
+- 前端接口文档：`docs/agent-interaction-api.md`
 - 接口入口：`agent/interaction/controller/AgentInteractionController.java`
 - 主编排：`agent/interaction/service/AgentInteractionService.java`
 - 底层 Tool（已有）：`agent/service/SosAgentToolService.java`
