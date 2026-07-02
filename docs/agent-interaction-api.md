@@ -27,7 +27,7 @@ http://{host}:54323/agent/interaction
 - 首轮 `POST /chat` **可不传** `conversationId`，服务端自动生成并在响应中返回
 - **后续每一轮**必须携带同一个 `conversationId`，否则会被当作新任务
 - 建议将 `conversationId` 保存在页面状态或 `localStorage`
-- 会话默认 **2 小时**过期；服务重启后会话丢失
+- 会话默认 **2 小时**无活动后过期（`agent.interaction.session-ttl-seconds`，默认 `7200`）；服务重启后会话丢失
 - 记忆的是**任务参数与状态**（`slots`、`plan` 等），不是完整聊天文本历史
 
 ### 1.4 推荐的前端状态机
@@ -36,17 +36,27 @@ http://{host}:54323/agent/interaction
 
 | `status` | 前端建议展示 |
 |----------|-------------|
-| `COLLECTING_PARAMS` | 展示 `missingInputs`，引导用户补充参数 |
+| `COLLECTING_PARAMS` | 展示 `missingInputs`（或 `taskTrace.missingInputs`），引导用户补充参数 |
 | `PLANNED` | 展示 `plan` 与 `replyText`，显示「确认执行」按钮 |
 | `EXECUTING` | 展示 loading（通常仅短暂出现） |
-| `COMPLETED` | 展示 `resultArtifacts`（如 `wfsUrl`）与 `stepLogs` |
+| `COMPLETED` | 展示 `resultArtifacts`（如 `wfsUrl`）与 `stepLogs` / `taskTrace` |
 | `FAILED` | 展示 `replyText` 与失败步骤 |
 | `CANCELLED` | 提示任务已取消，可引导发起新任务 |
 
 辅助布尔字段：
 
-- `canExecute === true`：参数已齐全
+- `canExecute === true`：参数已齐全且任务未取消
 - `needConfirmation === true`：等待用户确认，可传 `confirmed: true` 或发送「确认」类文本
+
+### 1.5 三种查询接口的区别
+
+| 接口 | 返回类型 | 适用场景 |
+|------|----------|----------|
+| `GET /context/{id}` | `TaskContext` | 页面刷新后恢复 UI，含 `plan`、`lastUserMessage` 等完整会话状态 |
+| `GET /trace/{id}` | `TaskTrace` | 任务追踪面板：状态 + 参数快照 + 步骤日志 + 产物（面向展示） |
+| `GET /provenance/{id}` | `ProvenanceChain` | 审计 / 调试：完整证据链，侧重步骤与输入快照 |
+
+> `POST /chat` 的响应中已内嵌 `taskTrace`，一般对话场景无需额外请求 `/trace`。
 
 ---
 
@@ -87,6 +97,26 @@ http://{host}:54323/agent/interaction
 
 取消关键词：`取消`、`不要`、`算了`、`停止`、`cancel`、`no`
 
+### 2.4 参数槽位中文名（SlotLabels）
+
+`replyText`、`understandingSummary` 中的缺参提示使用中文展示名；`missingInputs` / `extractedParams` 的键名仍为英文：
+
+| 键名 | 中文展示名 |
+|------|-----------|
+| `city` | 城市 |
+| `beginDate` | 开始日期 |
+| `endDate` | 结束日期 |
+| `observedProperty` | 观测属性 |
+| `shouldPublishWfs` | 是否发布 WFS |
+| `featureOfInterest` | 兴趣区域 |
+| `supportedCity` | 支持的城市（当前仅武汉市可用） |
+| `wfsLayer` | WFS 图层 |
+| `analysisType` | 分析类型 |
+| `outputLayerName` | 输出图层名 |
+| `eventKeyword` | 事件关键词 |
+| `analysisDepth` | 分析深度 |
+| `taskType` | 任务类型 |
+
 ---
 
 ## 3. 接口列表
@@ -94,8 +124,9 @@ http://{host}:54323/agent/interaction
 | 方法 | 路径 | 说明 |
 |------|------|------|
 | `POST` | `/agent/interaction/chat` | 多轮对话主入口 |
-| `GET` | `/agent/interaction/context/{conversationId}` | 查询会话任务上下文 |
-| `GET` | `/agent/interaction/provenance/{conversationId}` | 查询完整溯源链 |
+| `GET` | `/agent/interaction/context/{conversationId}` | 查询会话任务上下文（短期记忆） |
+| `GET` | `/agent/interaction/trace/{conversationId}` | 查询任务追踪视图 |
+| `GET` | `/agent/interaction/provenance/{conversationId}` | 查询完整数据溯源链 |
 
 ---
 
@@ -177,15 +208,16 @@ POST /agent/interaction/chat
 | `status` | InteractionStatus | 当前任务阶段 |
 | `taskType` | TaskType | 任务类型 |
 | `recognizedIntent` | UserIntent | 本轮识别到的用户意图 |
-| `understandingSummary` | string | 面向用户的理解摘要（多行文本） |
-| `extractedParams` | object | 已抽取参数（即 `slots` 的快照） |
-| `missingInputs` | string[] | 仍缺失的参数名 |
+| `understandingSummary` | string | 面向用户的理解摘要（多行文本，含任务类型与缺失参数中文名） |
+| `extractedParams` | object | 已抽取参数（即 `slots` 的快照，键名为英文） |
+| `missingInputs` | string[] | 仍缺失的参数键名（英文） |
 | `plan` | ExecutionPlan | 执行计划，参数未齐时可能步骤较少 |
-| `canExecute` | boolean | 参数是否已齐全 |
-| `needConfirmation` | boolean | 是否需要用户确认后才执行 |
-| `replyText` | string | 可直接展示给用户的回复文本 |
+| `canExecute` | boolean | 参数是否已齐全且未取消 |
+| `needConfirmation` | boolean | 是否需要用户确认后才执行（`status === PLANNED`） |
+| `replyText` | string | 可直接展示给用户的回复文本（缺参提示为中文） |
 | `resultArtifacts` | object | 结果产物（执行成功后含 `wfsUrl` 等） |
 | `stepLogs` | StepLogEntry[] | 本轮为止的溯源步骤 |
+| `taskTrace` | TaskTrace | 任务追踪视图（状态 + 参数 + 日志 + 产物整合） |
 | `turnCount` | number | 对话轮数 |
 
 **ExecutionPlan 结构**
@@ -203,16 +235,34 @@ POST /agent/interaction/chat
 | 字段 | 类型 | 说明 |
 |------|------|------|
 | `stepIndex` | number | 步骤序号 |
-| `phase` | string | 阶段，如 `user_input`、`planning`、`tool_execution` |
+| `phase` | string | 阶段，如 `user_input`、`planning`、`tool_execution`、`execution_summary` |
 | `skillName` | string | Skill 名称（Tool 执行时有值） |
 | `toolName` | string | Tool 名称（Tool 执行时有值） |
 | `callId` | string | 调用 ID |
-| `inputSnapshot` | string | 输入快照（可能被截断） |
+| `inputSnapshot` | string | 输入快照（可能被截断至 2000 字符） |
 | `outputSnapshot` | string | 输出快照（可能被截断） |
 | `success` | boolean | 是否成功 |
 | `errorMessage` | string | 错误信息 |
 | `timestamp` | number | 时间戳（毫秒） |
 | `metadata` | object | 扩展元数据 |
+
+**TaskTrace 结构**
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `conversationId` | string | 会话 ID |
+| `taskId` | string | 任务 ID |
+| `taskType` | TaskType | 任务类型 |
+| `status` | InteractionStatus | 当前阶段 |
+| `understandingSummary` | string | 理解摘要（同响应顶层字段） |
+| `inputSnapshot` | object | 已抽取参数快照（同 `extractedParams`） |
+| `missingInputs` | string[] | 缺失参数键名 |
+| `stepLogs` | StepLogEntry[] | 逐步执行日志 |
+| `resultArtifacts` | object | 中间/最终结果产物 |
+| `confirmed` | boolean | 用户是否已确认执行 |
+| `turnCount` | number | 对话轮数 |
+| `createdAt` | number | 创建时间（毫秒） |
+| `updatedAt` | number | 更新时间（毫秒） |
 
 **响应示例 — 缺参数（COLLECTING_PARAMS）**
 
@@ -223,7 +273,7 @@ POST /agent/interaction/chat
   "status": "COLLECTING_PARAMS",
   "taskType": "SOS_TO_WFS",
   "recognizedIntent": "NEW_TASK",
-  "understandingSummary": "任务类型：SOS 查询并发布 WFS\n缺失参数：city",
+  "understandingSummary": "任务类型：SOS 查询并发布 WFS\n- 任务：SOS 查询并可选发布 WFS\n缺失参数：城市",
   "extractedParams": {
     "beginDate": "2024-03-30",
     "endDate": "2024-05-30",
@@ -242,7 +292,7 @@ POST /agent/interaction/chat
   },
   "canExecute": false,
   "needConfirmation": false,
-  "replyText": "我已识别到部分参数，当前还缺少：city。请补充后继续。",
+  "replyText": "我已识别到部分参数，当前还缺少：城市。请补充后继续。",
   "resultArtifacts": {},
   "stepLogs": [
     {
@@ -255,6 +305,21 @@ POST /agent/interaction/chat
       "metadata": {}
     }
   ],
+  "taskTrace": {
+    "conversationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "taskId": "f9e8d7c6-b5a4-3210-fedc-ba9876543210",
+    "taskType": "SOS_TO_WFS",
+    "status": "COLLECTING_PARAMS",
+    "understandingSummary": "任务类型：SOS 查询并发布 WFS\n- 任务：SOS 查询并可选发布 WFS\n缺失参数：城市",
+    "inputSnapshot": { "beginDate": "2024-03-30", "endDate": "2024-05-30" },
+    "missingInputs": ["city"],
+    "stepLogs": [],
+    "resultArtifacts": {},
+    "confirmed": false,
+    "turnCount": 0,
+    "createdAt": 1780795194000,
+    "updatedAt": 1780795194534
+  },
   "turnCount": 1
 }
 ```
@@ -303,6 +368,13 @@ POST /agent/interaction/chat
     "wfsUrl": "http://localhost:8082/geoserver/weibo-test/wfs?..."
   },
   "stepLogs": [],
+  "taskTrace": {
+    "status": "COMPLETED",
+    "resultArtifacts": {
+      "wfsUrl": "http://localhost:8082/geoserver/weibo-test/wfs?..."
+    },
+    "confirmed": true
+  },
   "turnCount": 3
 }
 ```
@@ -373,9 +445,9 @@ GET /agent/interaction/context/{conversationId}
 | `taskType` | TaskType | 任务类型 |
 | `status` | InteractionStatus | 当前阶段 |
 | `slots` | object | 已收集参数（同 `extractedParams`） |
-| `missingInputs` | string[] | 缺失参数 |
+| `missingInputs` | string[] | 缺失参数键名 |
 | `confirmed` | boolean | 是否已确认执行 |
-| `lastUserIntent` | string | 最近一轮意图 |
+| `lastUserIntent` | string | 最近一轮意图（枚举名字符串） |
 | `lastUserMessage` | string | 最近一轮用户输入 |
 | `artifacts` | object | 中间产物与最终结果 |
 | `plan` | ExecutionPlan | 执行计划 |
@@ -390,17 +462,45 @@ GET /agent/interaction/context/{conversationId}
 
 ---
 
-## 6. GET /agent/interaction/provenance/{conversationId}
+## 6. GET /agent/interaction/trace/{conversationId}
+
+查询任务追踪视图，整合状态、参数快照、步骤日志与产物，适合「任务详情 / 进度追踪」面板。
+
+### 6.1 请求
+
+```
+GET /agent/interaction/trace/{conversationId}
+```
+
+**路径参数**
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `conversationId` | string | 会话 ID |
+
+### 6.2 响应
+
+**Body（TaskTrace）**
+
+结构与 `POST /chat` 响应中的 `taskTrace` 字段相同，字段说明见上文 **4.2 响应 — TaskTrace 结构**。
+
+### 6.3 错误
+
+同「查询会话上下文」，会话不存在或已过期时返回错误。
+
+---
+
+## 7. GET /agent/interaction/provenance/{conversationId}
 
 查询从用户输入到 Tool 执行的完整证据链，适合「执行详情 / 审计 / 调试」面板。
 
-### 6.1 请求
+### 7.1 请求
 
 ```
 GET /agent/interaction/provenance/{conversationId}
 ```
 
-### 6.2 响应
+### 7.2 响应
 
 **Body（ProvenanceChain）**
 
@@ -408,20 +508,23 @@ GET /agent/interaction/provenance/{conversationId}
 |------|------|------|
 | `conversationId` | string | 会话 ID |
 | `taskId` | string | 任务 ID |
+| `taskType` | TaskType | 任务类型 |
+| `status` | InteractionStatus | 当前阶段 |
 | `steps` | StepLogEntry[] | 完整步骤链 |
+| `inputSnapshot` | object | 已抽取参数快照（同 `slots`） |
 | `artifacts` | object | 全部中间产物与结果 |
-| `createdAt` | number | 创建时间 |
-| `updatedAt` | number | 更新时间 |
+| `createdAt` | number | 创建时间（毫秒） |
+| `updatedAt` | number | 更新时间（毫秒） |
 
-### 6.3 错误
+### 7.3 错误
 
 同「查询会话上下文」，会话不存在时返回错误。
 
 ---
 
-## 7. 前端集成示例
+## 8. 前端集成示例
 
-### 7.1 最简对话流程（伪代码）
+### 8.1 最简对话流程（伪代码）
 
 ```javascript
 let conversationId = localStorage.getItem('agentConversationId');
@@ -452,8 +555,9 @@ async function sendMessage(userMessage, options = {}) {
     showConfirmButton(() => sendMessage('', { confirmed: true }));
   } else if (data.status === 'COMPLETED') {
     showResult(data.resultArtifacts, data.replyText);
+    showTaskTrace(data.taskTrace); // 可选：展示追踪视图
   } else if (data.status === 'FAILED') {
-    showError(data.replyText);
+    showError(data.replyText, data.taskTrace?.stepLogs);
   } else if (data.status === 'CANCELLED') {
     showCancelled(data.replyText);
     localStorage.removeItem('agentConversationId');
@@ -463,7 +567,7 @@ async function sendMessage(userMessage, options = {}) {
 }
 ```
 
-### 7.2 页面刷新后恢复状态
+### 8.2 页面刷新后恢复状态
 
 ```javascript
 async function restoreSession(conversationId) {
@@ -478,7 +582,19 @@ async function restoreSession(conversationId) {
 }
 ```
 
-### 7.3 curl 快速验证
+### 8.3 独立拉取任务追踪
+
+```javascript
+async function loadTaskTrace(conversationId) {
+  const res = await fetch(
+    `http://localhost:54323/agent/interaction/trace/${conversationId}`
+  );
+  if (!res.ok) return null;
+  return res.json();
+}
+```
+
+### 8.4 curl 快速验证
 
 ```bash
 # 第一轮
@@ -499,28 +615,39 @@ curl -X POST "http://localhost:54323/agent/interaction/chat" \
 # 查询上下文
 curl "http://localhost:54323/agent/interaction/context/<conversationId>"
 
+# 查询任务追踪
+curl "http://localhost:54323/agent/interaction/trace/<conversationId>"
+
 # 查询溯源
 curl "http://localhost:54323/agent/interaction/provenance/<conversationId>"
 ```
 
 ---
 
-## 8. 注意事项
+## 9. 注意事项
 
 1. **URL 不要有多余空格**：路径末尾空格会被编码为 `%20`，导致 404
 2. **`conversationId` 必须持久化**：否则每轮都是新任务，无法多轮补参
 3. **确认门控**：`needConfirmation === true` 时不会自动执行，必须用户确认
 4. **会话有效期**：默认 2 小时无活动后过期；服务重启后会话全部丢失
-5. **Swagger / Knife4j**：Controller 已标注 `@Api`，也可在 `http://localhost:54323/doc.html` 查看在线文档（若项目已启用 Knife4j）
+5. **缺参提示语言**：`replyText` 使用中文参数名，`missingInputs` 仍为英文键名，前端展示建议优先用 `replyText` 或查上文 **2.4 参数槽位中文名**
+6. **`taskTrace` 与顶层字段**：`taskTrace` 是整合视图，与 `extractedParams`、`resultArtifacts`、`stepLogs` 等内容一致或为其子集，前端可任选一种展示方式
+7. **Swagger / Knife4j**：Controller 已标注 `@Api`，也可在 `http://localhost:54323/doc.html` 查看在线文档（若项目已启用 Knife4j）
 
 ---
 
-## 9. 相关源码
+## 10. 相关源码
 
 | 文件 | 说明 |
 |------|------|
-| `AgentInteractionController.java` | REST 入口 |
+| `AgentInteractionController.java` | REST 入口（chat / context / trace / provenance） |
+| `AgentInteractionService.java` | 主编排服务 |
+| `InteractionResponseBuilder.java` | 响应与理解摘要组装 |
 | `AgentInteractionRequest.java` | 请求模型 |
 | `AgentInteractionResponse.java` | 响应模型 |
 | `TaskContext.java` | 会话上下文模型 |
+| `TaskTrace.java` | 任务追踪视图模型 |
+| `ProvenanceChain.java` | 溯源链模型 |
+| `ProvenanceService.java` | 溯源记录与链/追踪视图构建 |
+| `SlotLabels.java` | 参数槽位中文展示名 |
 | `InMemoryTaskContextStore.java` | 内存会话存储 |

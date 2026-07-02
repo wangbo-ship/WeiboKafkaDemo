@@ -37,12 +37,18 @@ public class InMemoryTaskContextStore implements TaskContextStore {
 
     @Override
     public Optional<TaskContext> get(String conversationId) {
+        if (!properties.isInMemoryStoreEnabled()) {
+            return Optional.empty();
+        }
         evictExpired();
         return Optional.ofNullable(store.get(conversationId));
     }
 
     @Override
     public void save(TaskContext context) {
+        if (!properties.isInMemoryStoreEnabled()) {
+            return;
+        }
         context.setUpdatedAt(System.currentTimeMillis());
         store.put(context.getConversationId(), context);
         expireAt.put(context.getConversationId(),
@@ -51,6 +57,9 @@ public class InMemoryTaskContextStore implements TaskContextStore {
 
     @Override
     public void delete(String conversationId) {
+        if (!properties.isInMemoryStoreEnabled()) {
+            return;
+        }
         store.remove(conversationId);
         expireAt.remove(conversationId);
     }

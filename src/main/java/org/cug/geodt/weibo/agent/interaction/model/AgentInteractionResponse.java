@@ -38,5 +38,7 @@ public class AgentInteractionResponse {
     private Map<String, Object> resultArtifacts = new LinkedHashMap<>();
     /** 溯源步骤 */
     private List<StepLogEntry> stepLogs = new ArrayList<>();
+    /** 任务追踪视图（状态 + 参数快照 + 步骤日志 + 产物） */
+    private TaskTrace taskTrace;
     private int turnCount;
 }

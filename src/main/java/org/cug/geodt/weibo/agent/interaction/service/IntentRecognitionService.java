@@ -40,14 +40,10 @@ public class IntentRecognitionService {
         if (containsAny(normalized, CANCEL_KEYWORDS)) {
             return UserIntent.CANCEL;
         }
-        if (containsAny(normalized, CONFIRM_KEYWORDS) && context.getMissingInputs().isEmpty()) {
-            return UserIntent.CONFIRM_EXECUTE;
-        }
         if (containsAny(normalized, CHANGE_KEYWORDS)) {
             return UserIntent.CHANGE_TASK;
         }
-        if (context.getTurnCount() <= 0 || context.getTaskType() == null
-                || "unknown".equalsIgnoreCase(context.getTaskType().getCode())) {
+        if (isFirstTurn(context)) {
             return UserIntent.NEW_TASK;
         }
         if (!context.getMissingInputs().isEmpty()) {
@@ -57,6 +53,12 @@ public class IntentRecognitionService {
             return UserIntent.CONFIRM_EXECUTE;
         }
         return UserIntent.SUPPLY_PARAMS;
+    }
+
+    private boolean isFirstTurn(TaskContext context) {
+        return context.getTurnCount() == 0
+                || context.getTaskType() == null
+                || "unknown".equalsIgnoreCase(context.getTaskType().getCode());
     }
 
     private boolean containsAny(String text, List<String> keywords) {
