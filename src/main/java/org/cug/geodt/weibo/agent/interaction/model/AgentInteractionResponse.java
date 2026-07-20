@@ -4,6 +4,7 @@ import lombok.Data;
 import org.cug.geodt.weibo.agent.interaction.enums.InteractionStatus;
 import org.cug.geodt.weibo.agent.interaction.enums.TaskType;
 import org.cug.geodt.weibo.agent.interaction.enums.UserIntent;
+import org.cug.geodt.weibo.agent.interaction.model.SkillDefinition;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -19,6 +20,9 @@ public class AgentInteractionResponse {
     private String taskId;
     private InteractionStatus status;
     private TaskType taskType;
+    /** LLM 选用/生成的 Skill */
+    private String skillId;
+    private SkillDefinition skillDefinition;
     private UserIntent recognizedIntent;
     /** 面向用户的理解摘要 */
     private String understandingSummary;

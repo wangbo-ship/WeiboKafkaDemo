@@ -17,6 +17,10 @@ public class TaskContext {
     private String conversationId;
     private String taskId;
     private TaskType taskType = TaskType.UNKNOWN;
+    /** LLM 选用或动态生成的 Skill ID */
+    private String skillId;
+    /** LLM 生成/选用的 Skill 完整定义 */
+    private SkillDefinition skillDefinition;
     private InteractionStatus status = InteractionStatus.COLLECTING_PARAMS;
     /** 已抽取的业务参数槽位 */
     private Map<String, Object> slots = new LinkedHashMap<>();

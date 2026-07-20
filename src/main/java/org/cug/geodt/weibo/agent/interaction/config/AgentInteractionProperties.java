@@ -8,8 +8,8 @@ import org.springframework.stereotype.Component;
 @ConfigurationProperties(prefix = "agent.interaction")
 @Data
 public class AgentInteractionProperties {
-    /** 会话上下文 TTL（秒），默认 2 小时 */
-    private long sessionTtlSeconds = 7200;
+    /** 会话上下文 TTL（秒），默认 24 小时（内存存储，进程重启仍会丢失） */
+    private long sessionTtlSeconds = 86400;
     /** 是否启用内存会话存储 */
     private boolean inMemoryStoreEnabled = true;
 }

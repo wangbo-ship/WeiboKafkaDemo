@@ -3,10 +3,12 @@ server:
     context-path: /
   port: 54323
 spring:
+  profiles:
+    active: local
   datasource:
     url: jdbc:postgresql://localhost:5432/geodt_db?useUnicode=true&characterEncoding=utf-8&useSSL=false
     username: postgres
-    password: 1223655418
+    password: 123456
 #    url: jdbc:postgresql://localhost:54321/weibo?useUnicode=true&characterEncoding=utf-8&useSSL=false
 ##    username: cug
 #    username: postgres
@@ -120,10 +122,18 @@ openai:
   agent:
     base-url: https://openrouter.ai/api/v1
     api-key: ${OPENROUTER_API_KEY:}
-    model: qwen/qwen-plus
+    model: openrouter/free
     max-tool-rounds: 8
 
 agent:
   interaction:
-    session-ttl-seconds: 7200
+    session-ttl-seconds: 86400
     in-memory-store-enabled: true
+    llm:
+      # 可选: openrouter | deepseek | openai | qwen | doubao | cursor | custom
+      provider: openrouter
+      api-key: ${LLM_API_KEY:}
+      # model 也可写具体免费模型，如 qwen/qwen3-coder:free；openrouter/free 会自动选可用免费模型
+      # model: openrouter/free
+      temperature: 0.2
+      timeout-seconds: 60

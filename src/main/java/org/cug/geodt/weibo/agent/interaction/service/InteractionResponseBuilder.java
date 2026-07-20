@@ -4,6 +4,8 @@ import org.cug.geodt.weibo.agent.interaction.enums.InteractionStatus;
 import org.cug.geodt.weibo.agent.interaction.enums.UserIntent;
 import org.cug.geodt.weibo.agent.interaction.model.AgentInteractionResponse;
 import org.cug.geodt.weibo.agent.interaction.model.ExecutionPlan;
+import org.cug.geodt.weibo.agent.interaction.model.SkillDefinition;
+import org.cug.geodt.weibo.agent.interaction.model.SkillSlotSpec;
 import org.cug.geodt.weibo.agent.interaction.model.TaskContext;
 import org.cug.geodt.weibo.agent.interaction.model.TaskTrace;
 import org.cug.geodt.weibo.agent.interaction.provenance.ProvenanceService;
@@ -34,6 +36,8 @@ public class InteractionResponseBuilder {
         response.setTaskId(context.getTaskId());
         response.setStatus(context.getStatus());
         response.setTaskType(context.getTaskType());
+        response.setSkillDefinition(context.getSkillDefinition());
+        response.setSkillId(context.getSkillId());
         response.setRecognizedIntent(intent);
         response.setUnderstandingSummary(summary);
         response.setExtractedParams(new LinkedHashMap<>(context.getSlots()));
@@ -53,7 +57,7 @@ public class InteractionResponseBuilder {
     public String buildCollectOrPlanReply(TaskContext context) {
         if (!context.getMissingInputs().isEmpty()) {
             return "我已识别到部分参数，当前还缺少："
-                    + SlotLabels.joinLabels(context.getMissingInputs())
+                    + joinSlotLabels(context, context.getMissingInputs())
                     + "。请补充后继续。";
         }
         ExecutionPlan plan = context.getPlan();
@@ -68,21 +72,47 @@ public class InteractionResponseBuilder {
 
     public String buildMissingParamsOnConfirmReply(TaskContext context) {
         return "参数尚未齐全，暂不能执行。还缺少："
-                + SlotLabels.joinLabels(context.getMissingInputs())
+                + joinSlotLabels(context, context.getMissingInputs())
                 + "。请补充后再确认。";
     }
 
     public String buildUnderstandingSummary(TaskContext context) {
         StringBuilder builder = new StringBuilder();
-        builder.append("任务类型：").append(context.getTaskType().getLabel()).append("\n");
+        SkillDefinition skill = context.getSkillDefinition();
+        if (skill != null) {
+            builder.append("Skill：").append(skill.getSkillName())
+                    .append(" (").append(skill.getSkillId()).append(")\n");
+            if (skill.isDynamicallyGenerated()) {
+                builder.append("- LLM 动态生成\n");
+            }
+        } else {
+            builder.append("任务类型：").append(context.getTaskType().getLabel()).append("\n");
+        }
         if (context.getPlan() != null) {
             for (String point : context.getPlan().getSummaryPoints()) {
                 builder.append("- ").append(point).append("\n");
             }
         }
         if (!context.getMissingInputs().isEmpty()) {
-            builder.append("缺失参数：").append(SlotLabels.joinLabels(context.getMissingInputs()));
+            builder.append("缺失参数：").append(joinSlotLabels(context, context.getMissingInputs()));
         }
         return builder.toString().trim();
+    }
+
+    private String joinSlotLabels(TaskContext context, java.util.List<String> slotKeys) {
+        SkillDefinition skill = context.getSkillDefinition();
+        if (skill == null) {
+            return SlotLabels.joinLabels(slotKeys);
+        }
+        java.util.Map<String, String> dynamic = new java.util.LinkedHashMap<>();
+        for (SkillSlotSpec spec : skill.getRequiredSlots()) {
+            dynamic.put(spec.getName(), spec.getLabel());
+        }
+        for (SkillSlotSpec spec : skill.getOptionalSlots()) {
+            dynamic.put(spec.getName(), spec.getLabel());
+        }
+        return slotKeys.stream()
+                .map(key -> dynamic.getOrDefault(key, SlotLabels.label(key)))
+                .collect(Collectors.joining("、"));
     }
 }

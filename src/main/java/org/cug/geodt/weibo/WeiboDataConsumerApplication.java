@@ -11,7 +11,7 @@ import com.github.jeffreyning.mybatisplus.conf.EnableMPP;
 @SpringBootApplication
 @EnableAsync // 启用异步支持
 @EnableSwagger2
-@MapperScan({"org.cug.geodt.weibo.mapper.**"})
+@MapperScan({"org.cug.geodt.weibo.mapper"})
 @MapperScan(basePackages = {"org.cug.geodt.weibo.sos.mapper"})
 @MapperScan(basePackages = {"org.cug.geodt.weibo.sos.engine.mapper"})
 public class WeiboDataConsumerApplication {
